@@ -58,6 +58,7 @@ brews:
     homepage: https://github.com/ai-agent-manager/agent-lint
     description: Lint Agent Skills against the agentskills.io specification
     license: MIT
+    skip_upload: "{{ if index .Env \"HOMEBREW_TAP_GITHUB_TOKEN\" }}false{{ else }}true{{ end }}"
     test: |
       system "#{bin}/agent-lint", "list-rules"
     install: |

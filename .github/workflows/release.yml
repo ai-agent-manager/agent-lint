@@ -28,5 +28,5 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Optional: PAT with access to ai-agent-manager/homebrew-tap for formula bumps
+          # PAT with contents:write on ai-agent-manager/homebrew-tap (optional; brew upload skipped if unset)
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
