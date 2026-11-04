@@ -63,6 +63,6 @@ In `validateReadme`, after name/description checks, iterate `readme_constraints`
 
 ## Migration Plan
 
-1. Ship breaking config/rule change in the same release.
+1. Ship the config/rule swap in the same release (pre-v1.0; no deprecation window).
 2. Docs example shows tags + phases expressed as constraints.
-3. No runtime shim or deprecation window.
+3. No runtime shim.
