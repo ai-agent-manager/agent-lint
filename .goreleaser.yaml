@@ -1,0 +1,69 @@
+version: 2
+
+project_name: agent-lint
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: agent-lint
+    main: ./cmd/agent-lint
+    binary: agent-lint
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+brews:
+  - repository:
+      owner: ai-agent-manager
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/ai-agent-manager/agent-lint
+    description: Lint Agent Skills against the agentskills.io specification
+    license: MIT
+    test: |
+      system "#{bin}/agent-lint", "list-rules"
+    install: |
+      bin.install "agent-lint"
+
+release:
+  github:
+    owner: ai-agent-manager
+    name: agent-lint
