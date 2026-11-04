@@ -9,6 +9,8 @@ brew install ai-agent-manager/tap/agent-lint
 agent-lint --version
 ```
 
+The tap formula is updated automatically when a new `v*` GitHub Release is published.
+
 ## GitHub release binary
 
 1. Open the latest [Release](https://github.com/ai-agent-manager/agent-lint/releases).

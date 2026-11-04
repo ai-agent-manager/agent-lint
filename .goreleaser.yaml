@@ -49,8 +49,8 @@ changelog:
       - "^test:"
       - "^ci:"
 
-# Homebrew formula is maintained manually in ai-agent-manager/homebrew-tap
-# (GoReleaser `brews` is deprecated in favour of homebrew_casks).
+# Homebrew Formula updates are handled by scripts/update-homebrew-formula.sh
+# in the Release workflow (not GoReleaser homebrew_casks).
 
 release:
   github:
