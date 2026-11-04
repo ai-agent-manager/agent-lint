@@ -68,6 +68,10 @@ Future asset types (e.g. Rovo) should be new packages implementing the same diag
 - Keep PRs focused. Spec/rule behaviour changes should mention agentskills.io implications in the PR body.
 - Do not commit secrets, local binaries, or `dist/`.
 
+## User documentation
+
+End-user how-to guides live in `docs/` (install, check, config, ignores, rules, CI). Keep that directory **user-facing** — not maintainer architecture, contribution process, or release engineering notes (those belong in `AGENTS.md`, OpenSpec, or workflow comments).
+
 ## Specs (OpenSpec)
 
 Behaviour contracts live under `openspec/specs/`.
