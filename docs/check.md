@@ -1,4 +1,4 @@
-# Checking skills
+# Checking skills and Rovo agents
 
 ## Basic usage
 
@@ -19,9 +19,9 @@ If you omit `--config` / `--ignore-file`, agent-lint loads `.agent-lint.yaml` an
 
 ## What gets scanned
 
-- Each **immediate child directory** of `--root` is a candidate skill.
+- Each **immediate child directory** of `--root` is a candidate asset.
 - Directories with `SKILL.md` are linted as Agent Skills.
-- Directories with only `rovo-agent.yaml` are skipped (Rovo checking is not implemented yet).
+- Directories with only `rovo-agent.yaml` are linted as Rovo agents (`rovo/…` rules).
 - Both files in one directory, or neither, is an error.
 
 ## Flags

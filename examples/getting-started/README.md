@@ -13,7 +13,7 @@ getting-started/
         tone.md
     summarize-notes/     ← another Agent Skill
       SKILL.md
-    backlog-triage/      ← Rovo-only (rovo-agent.yaml) — skipped for now
+    backlog-triage/      ← Rovo-only (rovo-agent.yaml)
       rovo-agent.yaml
 ```
 
@@ -32,7 +32,7 @@ Expected: exit code `0`.
 |-----------|-------|--------|
 | `greet-user` | `SKILL.md` | Validated as an Agent Skill |
 | `summarize-notes` | `SKILL.md` | Validated as an Agent Skill |
-| `backlog-triage` | `rovo-agent.yaml` only | **Skipped** (Rovo checker not implemented yet) |
+| `backlog-triage` | `rovo-agent.yaml` only | Validated as a Rovo agent |
 
 Only **immediate children** of `--root` are candidates. Nested folders inside a skill (for example `references/`) are not treated as separate skills.
 

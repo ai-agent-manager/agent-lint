@@ -134,3 +134,50 @@ func TestEstimateAndName(t *testing.T) {
 		t.Fatal("expected name/directory mismatch for bad-name")
 	}
 }
+
+func TestRovoOnlyValidated(t *testing.T) {
+	root := testdataRoot(t)
+	diags, err := skill.Check(skill.Options{
+		Config:     config.Default(),
+		ScanRoot:   root,
+		SkillsRoot: root,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasRule(diags, rules.RovoSchemaInvalid) {
+		t.Fatalf("expected rovo instructions missing from fixture; got %#v", diags)
+	}
+	if !hasRule(diags, rules.RovoSchemaInvalid) {
+		t.Fatalf("expected unsupported apiVersion from fixture; got %#v", diags)
+	}
+	for _, d := range diags {
+		if d.Path == "valid-rovo-v2/rovo-agent.yaml" && d.Severity == rules.SeverityError {
+			t.Errorf("unexpected error on valid-rovo-v2: %s: %s", d.RuleID, d.Message)
+		}
+	}
+}
+
+func TestRovoRequireReadme(t *testing.T) {
+	root := testdataRoot(t)
+	cfg := config.Default()
+	cfg.Skills.RequireReadme = true
+	diags, err := skill.Check(skill.Options{
+		Config:     cfg,
+		ScanRoot:   root,
+		SkillsRoot: root,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, d := range diags {
+		if d.RuleID == rules.ReadmeMissing && d.Path == "valid-rovo-v2" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected skill/readme-missing for valid-rovo-v2; got %#v", diags)
+	}
+}

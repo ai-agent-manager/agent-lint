@@ -51,6 +51,10 @@ const (
 	ReadmePhaseValue         = "skill/readme-phase-value"
 	ClaudeReservedName       = "skill/claude-reserved-name"
 	ClaudeAngleBrackets      = "skill/claude-angle-brackets"
+
+	RovoYAMLInvalid   = "rovo/yaml-invalid"
+	RovoYAMLNotObject = "rovo/yaml-not-object"
+	RovoSchemaInvalid = "rovo/schema-invalid"
 )
 
 // All returns every known rule.
@@ -89,6 +93,9 @@ func All() []Rule {
 		{ReadmePhaseValue, SeverityError, "README.md phase value is not in the configured allowlist"},
 		{ClaudeReservedName, SeverityError, "Claude.ai: name must not contain anthropic or claude"},
 		{ClaudeAngleBrackets, SeverityError, "Claude.ai: description must not contain < or >"},
+		{RovoYAMLInvalid, SeverityError, "rovo-agent.yaml must be valid YAML"},
+		{RovoYAMLNotObject, SeverityError, "rovo-agent.yaml must parse to a YAML object"},
+		{RovoSchemaInvalid, SeverityError, "rovo-agent.yaml does not conform to the vendored Rovo agent JSON Schema"},
 	}
 }
 

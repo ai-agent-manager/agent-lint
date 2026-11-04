@@ -1,0 +1,5 @@
+apiVersion: "rovo.atlassian.com/v1"
+kind: "StudioAgent"
+name: "Legacy V1"
+description: "Archived apiVersion on purpose."
+instructions: "Should still fail schema apiVersion const."

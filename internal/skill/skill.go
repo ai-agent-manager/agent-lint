@@ -14,6 +14,7 @@ import (
 	"github.com/ai-agent-manager/agent-lint/internal/config"
 	"github.com/ai-agent-manager/agent-lint/internal/frontmatter"
 	"github.com/ai-agent-manager/agent-lint/internal/report"
+	"github.com/ai-agent-manager/agent-lint/internal/rovo"
 	"github.com/ai-agent-manager/agent-lint/internal/rules"
 )
 
@@ -82,7 +83,14 @@ func checkDirectory(dirPath, dirName string, opts Options, seenNames map[string]
 		return diags
 	}
 	if hasRovo {
-		// Rovo-only: skip until a Rovo checker exists.
+		diags = append(diags, rovo.Check(rovoFile, opts.ScanRoot)...)
+		if opts.Config.Skills.RequireReadme {
+			if !fileExists(readmeFile) {
+				diags = append(diags, diag(rules.ReadmeMissing, relDir, "missing README.md"))
+			} else {
+				diags = append(diags, validateReadme(readmeFile, opts)...)
+			}
+		}
 		return diags
 	}
 

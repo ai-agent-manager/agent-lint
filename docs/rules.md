@@ -55,6 +55,20 @@ Markdown links are checked for existence. Plain-text path mentions in prose are 
 
 When `require_readme` / tags / phases are configured: `skill/readme-missing`, `skill/readme-frontmatter-invalid`, `skill/readme-name-missing`, `skill/readme-description-missing`, `skill/readme-tags-invalid`, `skill/readme-required-tag`, `skill/readme-phases-invalid`, `skill/readme-phase-value`.
 
+These README rules also apply to Rovo-only directories when README requirements are enabled.
+
+### Rovo agents (`rovo-agent.yaml`)
+
+Validated against the vendored agent-manager JSON Schema (`internal/rovo/schemas/rovo-agent.schema.json`, Draft 2020-12). **v2-beta only** (`apiVersion: rovo.atlassian.com/v2-beta`, `kind: StudioAgent`).
+
+| Rule ID | Severity | Meaning |
+|---------|----------|---------|
+| `rovo/yaml-invalid` | error | File unreadable or not valid YAML |
+| `rovo/yaml-not-object` | error | Root value is not a mapping |
+| `rovo/schema-invalid` | error | Document fails the vendored Rovo JSON Schema |
+
+Schema constraints include Studio limits (e.g. `name` ≤ 30 chars, `description` ≤ 400, ≤ 3 `conversationStarters`) and `additionalProperties: false`.
+
 ### Opt-in Claude.ai rules
 
 With `--claude`: `skill/claude-reserved-name`, `skill/claude-angle-brackets`.

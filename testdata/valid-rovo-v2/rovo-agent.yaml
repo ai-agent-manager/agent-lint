@@ -1,0 +1,20 @@
+apiVersion: "rovo.atlassian.com/v2-beta"
+kind: "StudioAgent"
+name: "Valid Rovo Agent"
+description: "A minimal valid v2-beta Rovo agent for fixtures."
+instructions: |
+  You help teams with a focused task.
+  Stay concise and ask clarifying questions when needed.
+conversationStarters:
+  - "Help me get started"
+skills:
+  - example-skill
+knowledge: all
+webSearch: false
+deepResearch: false
+subagents:
+  helper:
+    name: "Helper"
+    enabled: true
+    trigger: "When the user asks for a checklist"
+    instructions: "Produce a short checklist."

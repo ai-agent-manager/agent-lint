@@ -31,7 +31,8 @@ Before finishing a change: `go test ./...` must be green. Add or update tests fo
 | Concern | Package | Notes |
 |--------|---------|--------|
 | CLI flags / commands | `cmd/agent-lint` | Cobra only; keep thin |
-| Skill walk + agentskills.io rules | `internal/skill` | Main validation logic |
+| Skill walk + agentskills.io rules | `internal/skill` | Discovery + skill validation; delegates Rovo-only dirs |
+| Rovo `rovo-agent.yaml` rules | `internal/rovo` | Vendored agent-manager JSON Schema (v2-beta) |
 | Frontmatter parse | `internal/frontmatter` | YAML between `---` fences |
 | Stable rule IDs + default severities | `internal/rules` | Every diagnostic must use an ID from here |
 | Config (`.agent-lint.yaml`) | `internal/config` | Defaults encode spec progressive-disclosure caps |
@@ -85,5 +86,5 @@ Validate with `npx @fission-ai/openspec validate --specs --all`.
 ## Out of scope (for now)
 
 - Skill installers, cross-agent “flavors”, auto-fix, LLM/semantic quality reviews.
-- Full Rovo `rovo-agent.yaml` validation (planned as a separate checker).
+- Common Agent Format (`AGENT.md`) validation (planned as a separate checker).
 - Soft-passing body/token limits without an explicit config override.

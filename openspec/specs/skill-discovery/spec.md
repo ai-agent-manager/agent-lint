@@ -2,7 +2,7 @@
 
 ## Purpose
 
-agent-lint discovers lint targets by walking immediate child directories of the skills root and classifying each directory as an Agent Skill, a Rovo agent, or an invalid asset layout. This keeps skill validation focused while leaving room for a future Rovo checker.
+agent-lint discovers lint targets by walking immediate child directories of the skills root and classifying each directory as an Agent Skill, a Rovo agent, or an invalid asset layout. This keeps skill validation focused and hands Rovo-only directories to the Rovo checker.
 
 ## Requirements
 
@@ -24,10 +24,10 @@ Each candidate directory SHALL contain exactly one of `SKILL.md` or `rovo-agent.
 - **WHEN** a directory contains `SKILL.md` and not `rovo-agent.yaml`
 - **THEN** it is validated as an Agent Skill
 
-#### Scenario: Rovo-only directory skipped
+#### Scenario: Rovo-only directory validated
 
 - **WHEN** a directory contains `rovo-agent.yaml` and not `SKILL.md`
-- **THEN** skill validation is skipped for that directory (no Rovo structural lint yet)
+- **THEN** it is validated as a Rovo agent (structural `rovo-agent.yaml` lint)
 
 #### Scenario: Both definition files
 

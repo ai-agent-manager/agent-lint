@@ -1,0 +1,4 @@
+apiVersion: "rovo.atlassian.com/v2-beta"
+kind: "StudioAgent"
+name: "Broken Rovo"
+description: "Missing instructions on purpose."
