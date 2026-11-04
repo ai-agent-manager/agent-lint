@@ -111,4 +111,4 @@ Body token count uses a documented rough estimator: `ceil(utf8_rune_count / 4)`.
 
 ## License
 
-MIT
+Apache License 2.0
