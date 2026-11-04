@@ -1,76 +1,70 @@
 ## Context
 
-See proposal.md — Why. Today `SkillsConfig` has parallel `RequiredTags` / `AllowedPhases` fields and `validateReadme` hard-codes the `tags` / `phases` keys plus four rule IDs. SKILL.md frontmatter rejects unknown keys unless Claude Code extensions are enabled. No compatibility shim for the removed keys.
+See proposal.md — Why. agentskills.io `metadata` is string→string; list-shaped constraints were a README-era leftover. This change unifies both files on string operators and dotted paths.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Parallel config lists (`readme_constraints`, `skill_constraints`) with the same operators
-- File-specific stable rule IDs independent of field names
-- Skill constraint field names carve out of the agentskills.io allowlist
-- Fail fast on empty/invalid constraint entries at config load
+- Parallel `readme_constraints` / `skill_constraints`
+- Exactly one operator per entry: `equals` | `not_equals` | `matches` | `not_matches`
+- Dotted field paths (`metadata.phases`)
+- Validate regexp syntax at config load
+- File- and operator-specific rule IDs
 
 **Non-Goals:**
 
-- Aliases or migration for `required_tags` / `allowed_phases`
-- Constraints beyond string lists
-- Nesting taxonomy under `metadata`
+- YAML sequence operators
+- Compatibility shims for `must_include` / `allowed` / old keys
 
 ## Decisions
 
-### 1. Config shape (parallel keys)
+### 1. Config shape
 
 ```yaml
 skills:
   require_readme: true
   readme_constraints:
-    - field: tags
-      must_include: [agent-skill]
-    - field: phases
-      allowed: [visioning, discovery, elaboration, build_and_release, run_and_measure]
+    - field: name
+      equals: Valid Skill
+    - field: description
+      matches: "(?i)fixture"
   skill_constraints:
-    - field: phases
-      allowed: [visioning, discovery, elaboration, build_and_release, run_and_measure]
+    - field: metadata.phases
+      matches: "^(visioning|discovery|elaboration|build_and_release|run_and_measure)$"
+    - field: metadata.author
+      not_equals: ""
 ```
 
-Shared Go type `FrontmatterConstraint` (`Field`, `MustInclude`, `Allowed`) used by both lists.
+Shared type `FrontmatterConstraint` with `Field` and optional pointer/presence for the four operators; load rejects 0 or >1 operators and invalid regexps.
 
-**Rejected:** Single list with a `target` discriminator (more YAML noise for little gain). Map-of-fields (Option A).
+### 2. Path resolution
 
-### 2. Presence semantics
-
-If an entry has any non-empty `must_include` or `allowed`, the field must exist as a non-empty string array. No separate `required: true` flag in this change.
+Split `field` on `.`. Walk maps; final value MUST be a YAML string (including empty). Missing path or non-string → `*-field-invalid`.
 
 ### 3. Rule IDs
 
-| File | Invalid / missing list | Missing `must_include` | Outside `allowed` |
-|------|------------------------|------------------------|-------------------|
-| README.md | `skill/readme-field-invalid` | `skill/readme-field-required-value` | `skill/readme-field-allowed-value` |
-| SKILL.md | `skill/skill-field-invalid` | `skill/skill-field-required-value` | `skill/skill-field-allowed-value` |
-
-Delete the four tag/phase rule constants.
+| | README | SKILL.md |
+|--|--------|----------|
+| Missing / not string | `skill/readme-field-invalid` | `skill/skill-field-invalid` |
+| `equals` failed | `skill/readme-field-equals` | `skill/skill-field-equals` |
+| `not_equals` failed | `skill/readme-field-not-equals` | `skill/skill-field-not-equals` |
+| `matches` failed | `skill/readme-field-matches` | `skill/skill-field-matches` |
+| `not_matches` failed | `skill/readme-field-not-matches` | `skill/skill-field-not-matches` |
 
 ### 4. Allowlist carve-out
 
-During SKILL.md frontmatter allowlist checks, every `field` named in `skill_constraints` is treated as allowed. Constraint validation still runs and may emit `skill/skill-field-*` diagnostics. Constrained fields that collide with agentskills keys (e.g. `name`) keep their existing type rules; string-list constraints on non-list agentskills fields will fail `skill-field-invalid` as expected.
+Add only the **root** segment of each `skill_constraints` field to the SKILL.md allowlist. `metadata.phases` → root `metadata` (already allowed). Top-level `phases` → carve-out `phases`.
 
-### 5. Config validation
+### 5. Shared validation helper
 
-On `Load`, reject any constraint (in either list) with empty `field`, or with both `must_include` and `allowed` empty.
-
-### 6. Validation loop
-
-Shared helper applies string-list logic; callers pass the rule ID trio and path label (`README.md` / `SKILL.md`). README loop runs only when `require_readme` is true; skill loop runs whenever `skill_constraints` is non-empty.
+One helper resolves the path, applies the operator, and emits the chosen rule ID trio/quintet for the file.
 
 ## Risks / Trade-offs
 
-- [Ignore files referencing old rule IDs] → Unknown IDs already fail load with exit 2; callers must update ignore files when upgrading.
-- [Org taxonomy on SKILL.md diverges from agentskills.io] → Accepted: opt-in via config, documented as an extension; unconstrained unknown fields still error.
-- [Old keys silently ignored] → Document removal in `docs/configuration.md`.
+- [README fixtures still using YAML lists] → Update fixtures/docs to strings; list fields fail `*-field-invalid`.
+- [Complex allowlists via regex] → Document alternation patterns; no first-class enum list.
 
 ## Migration Plan
 
-1. Ship the config/rule swap in the same release (pre-v1.0; no deprecation window).
-2. Docs example shows tags + phases on README and optional skill constraints.
-3. No runtime shim.
+Ship in the same pre-v1.0 release with no shim. Docs show `metadata.*` for SKILL.md and string operators for both lists.

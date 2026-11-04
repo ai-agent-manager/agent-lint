@@ -5,6 +5,7 @@ license: MIT
 metadata:
   author: agent-lint
   version: "1.0.0"
+  phases: build_and_release
 ---
 
 # Valid Skill

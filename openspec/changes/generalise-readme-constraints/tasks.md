@@ -1,18 +1,16 @@
 ## 1. Config and rules
 
-- [x] 1.1 Replace `RequiredTags` / `AllowedPhases` with shared `FrontmatterConstraint` lists (`readme_constraints`, `skill_constraints`) in `internal/config`, validate entries on load
-- [x] 1.2 Replace tag/phase rule IDs with `skill/readme-field-*` and add `skill/skill-field-*` counterparts in `internal/rules`
-- [x] 1.3 Add config unit tests for valid constraints and empty-entry rejection (both lists)
+- [x] 1.1 Replace list operators with `FrontmatterConstraint` string operators (`equals` / `not_equals` / `matches` / `not_matches`), dotted `field`, validate exactly one operator + regexp on load
+- [x] 1.2 Replace list-oriented rule IDs with `*-field-invalid` plus per-operator IDs for README and SKILL.md
+- [x] 1.3 Add config tests for valid entries, multi/zero operator rejection, and bad regexp
 
 ## 2. Validation
 
-- [x] 2.1 Rewrite `validateReadme` to apply `readme_constraints` with shared string-list logic
-- [x] 2.2 Apply `skill_constraints` in SKILL.md frontmatter validation and carve constrained fields out of the unknown-field allowlist
-- [x] 2.3 Update skill tests and fixtures for README constraints; cover missing required value, allowlist miss, and invalid field type
-- [x] 2.4 Add skill-constraint tests (valid carve-out, required/allowed/invalid, unconstrained unknown still fails)
+- [x] 2.1 Resolve dotted paths to strings; apply operators via shared helper for README and SKILL.md
+- [x] 2.2 Carve out only the root segment of each `skill_constraints` field from the allowlist
+- [x] 2.3 Update fixtures/tests for string fields and operator failures; cover `metadata.*` paths
 
-## 3. Docs and examples
+## 3. Docs
 
-- [x] 3.1 Update `docs/configuration.md` and `docs/rules.md` for both constraint lists and rule IDs
-- [x] 3.2 Confirm examples do not still show `required_tags` / `allowed_phases`
-- [x] 3.3 Run `go test ./...` and `npx @fission-ai/openspec validate --specs --all`
+- [x] 3.1 Update `docs/configuration.md` and `docs/rules.md`
+- [x] 3.2 Run `go test ./...` and OpenSpec validate

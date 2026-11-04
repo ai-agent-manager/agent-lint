@@ -4,6 +4,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -26,11 +27,13 @@ type SkillsConfig struct {
 	ClaudeCodeFields      []string                `yaml:"claude_code_fields"`
 }
 
-// FrontmatterConstraint validates a string-list field in README.md or SKILL.md frontmatter.
+// FrontmatterConstraint validates a string frontmatter field via exactly one operator.
 type FrontmatterConstraint struct {
-	Field       string   `yaml:"field"`
-	MustInclude []string `yaml:"must_include"`
-	Allowed     []string `yaml:"allowed"`
+	Field      string  `yaml:"field"`
+	Equals     *string `yaml:"equals"`
+	NotEquals  *string `yaml:"not_equals"`
+	Matches    *string `yaml:"matches"`
+	NotMatches *string `yaml:"not_matches"`
 }
 
 // IgnoreConfig embeds ignore entries in the main config file.
@@ -112,8 +115,27 @@ func validateConstraints(path string, constraints []FrontmatterConstraint) error
 		if field == "" {
 			return fmt.Errorf("%s[%d]: field is required", path, i)
 		}
-		if len(c.MustInclude) == 0 && len(c.Allowed) == 0 {
-			return fmt.Errorf("%s[%d] (field %q): must set must_include and/or allowed", path, i, field)
+		ops := 0
+		if c.Equals != nil {
+			ops++
+		}
+		if c.NotEquals != nil {
+			ops++
+		}
+		if c.Matches != nil {
+			ops++
+			if _, err := regexp.Compile(*c.Matches); err != nil {
+				return fmt.Errorf("%s[%d] (field %q): invalid matches regexp: %w", path, i, field, err)
+			}
+		}
+		if c.NotMatches != nil {
+			ops++
+			if _, err := regexp.Compile(*c.NotMatches); err != nil {
+				return fmt.Errorf("%s[%d] (field %q): invalid not_matches regexp: %w", path, i, field, err)
+			}
+		}
+		if ops != 1 {
+			return fmt.Errorf("%s[%d] (field %q): set exactly one of equals, not_equals, matches, not_matches", path, i, field)
 		}
 	}
 	return nil

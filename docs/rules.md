@@ -55,13 +55,13 @@ Markdown links are checked for existence. Plain-text path mentions in prose are 
 
 When `require_readme` is configured: `skill/readme-missing`, `skill/readme-frontmatter-invalid`, `skill/readme-name-missing`, `skill/readme-description-missing`.
 
-When `readme_constraints` is also configured: `skill/readme-field-invalid`, `skill/readme-field-required-value`, `skill/readme-field-allowed-value`.
+When `readme_constraints` is also configured: `skill/readme-field-invalid`, `skill/readme-field-equals`, `skill/readme-field-not-equals`, `skill/readme-field-matches`, `skill/readme-field-not-matches`.
 
 These README rules also apply to Rovo-only directories when README requirements are enabled.
 
 ### Config-gated SKILL.md field constraints
 
-When `skill_constraints` is configured: `skill/skill-field-invalid`, `skill/skill-field-required-value`, `skill/skill-field-allowed-value`. Named fields do not emit `skill/frontmatter-unknown-field`.
+When `skill_constraints` is configured: `skill/skill-field-invalid`, `skill/skill-field-equals`, `skill/skill-field-not-equals`, `skill/skill-field-matches`, `skill/skill-field-not-matches`. The root key of each constrained path does not emit `skill/frontmatter-unknown-field`.
 
 ### Rovo agents (`rovo-agent.yaml`)
 

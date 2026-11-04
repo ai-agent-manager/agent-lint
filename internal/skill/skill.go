@@ -153,8 +153,8 @@ func validateFrontmatter(parsed *frontmatter.Parsed, relPath, dirName string, op
 		}
 	}
 	for _, c := range opts.Config.Skills.SkillConstraints {
-		if f := strings.TrimSpace(c.Field); f != "" {
-			allowed[f] = struct{}{}
+		if root := constraintRoot(c.Field); root != "" {
+			allowed[root] = struct{}{}
 		}
 	}
 
@@ -248,9 +248,11 @@ func validateFrontmatter(parsed *frontmatter.Parsed, relPath, dirName string, op
 
 	for _, c := range opts.Config.Skills.SkillConstraints {
 		diags = append(diags, validateFrontmatterConstraint(data, relPath, "SKILL.md", c, fieldRuleIDs{
-			invalid:       rules.SkillFieldInvalid,
-			requiredValue: rules.SkillFieldRequiredValue,
-			allowedValue:  rules.SkillFieldAllowedValue,
+			invalid:    rules.SkillFieldInvalid,
+			equals:     rules.SkillFieldEquals,
+			notEquals:  rules.SkillFieldNotEquals,
+			matches:    rules.SkillFieldMatches,
+			notMatches: rules.SkillFieldNotMatches,
 		})...)
 	}
 
@@ -368,9 +370,11 @@ func validateReadme(readmeFile string, opts Options) []report.Diagnostic {
 
 	for _, c := range opts.Config.Skills.ReadmeConstraints {
 		diags = append(diags, validateFrontmatterConstraint(parsed.Data, relPath, "README.md", c, fieldRuleIDs{
-			invalid:       rules.ReadmeFieldInvalid,
-			requiredValue: rules.ReadmeFieldRequiredValue,
-			allowedValue:  rules.ReadmeFieldAllowedValue,
+			invalid:    rules.ReadmeFieldInvalid,
+			equals:     rules.ReadmeFieldEquals,
+			notEquals:  rules.ReadmeFieldNotEquals,
+			matches:    rules.ReadmeFieldMatches,
+			notMatches: rules.ReadmeFieldNotMatches,
 		})...)
 	}
 
@@ -378,40 +382,89 @@ func validateReadme(readmeFile string, opts Options) []report.Diagnostic {
 }
 
 type fieldRuleIDs struct {
-	invalid       string
-	requiredValue string
-	allowedValue  string
+	invalid    string
+	equals     string
+	notEquals  string
+	matches    string
+	notMatches string
+}
+
+func constraintRoot(field string) string {
+	field = strings.TrimSpace(field)
+	if field == "" {
+		return ""
+	}
+	if i := strings.IndexByte(field, '.'); i >= 0 {
+		return field[:i]
+	}
+	return field
+}
+
+func stringAtPath(data map[string]any, path string) (string, bool) {
+	parts := strings.Split(path, ".")
+	var cur any = data
+	for _, part := range parts {
+		if part == "" {
+			return "", false
+		}
+		m, ok := cur.(map[string]any)
+		if !ok {
+			return "", false
+		}
+		next, ok := m[part]
+		if !ok || next == nil {
+			return "", false
+		}
+		cur = next
+	}
+	s, ok := cur.(string)
+	if !ok {
+		return "", false
+	}
+	return s, true
 }
 
 func validateFrontmatterConstraint(data map[string]any, relPath, fileLabel string, c config.FrontmatterConstraint, ids fieldRuleIDs) []report.Diagnostic {
-	var diags []report.Diagnostic
-	values, ok := frontmatter.StringSliceField(data, c.Field)
-	if !ok || len(values) == 0 {
+	value, ok := stringAtPath(data, c.Field)
+	if !ok {
 		return []report.Diagnostic{diag(ids.invalid, relPath,
-			fmt.Sprintf("%s %q must be a non-empty array of strings", fileLabel, c.Field))}
+			fmt.Sprintf("%s %q must resolve to a string", fileLabel, c.Field))}
 	}
 
-	for _, req := range c.MustInclude {
-		if !contains(values, req) {
-			diags = append(diags, diag(ids.requiredValue, relPath,
-				fmt.Sprintf("%s %q must include %q", fileLabel, c.Field, req)))
+	switch {
+	case c.Equals != nil:
+		if value != *c.Equals {
+			return []report.Diagnostic{diag(ids.equals, relPath,
+				fmt.Sprintf("%s %q must equal %q", fileLabel, c.Field, *c.Equals))}
+		}
+	case c.NotEquals != nil:
+		if value == *c.NotEquals {
+			return []report.Diagnostic{diag(ids.notEquals, relPath,
+				fmt.Sprintf("%s %q must not equal %q", fileLabel, c.Field, *c.NotEquals))}
+		}
+	case c.Matches != nil:
+		re, err := regexp.Compile(*c.Matches)
+		if err != nil {
+			// Config load already validates patterns; treat as invalid if reached.
+			return []report.Diagnostic{diag(ids.invalid, relPath,
+				fmt.Sprintf("%s %q has invalid matches regexp", fileLabel, c.Field))}
+		}
+		if !re.MatchString(value) {
+			return []report.Diagnostic{diag(ids.matches, relPath,
+				fmt.Sprintf("%s %q must match %q", fileLabel, c.Field, *c.Matches))}
+		}
+	case c.NotMatches != nil:
+		re, err := regexp.Compile(*c.NotMatches)
+		if err != nil {
+			return []report.Diagnostic{diag(ids.invalid, relPath,
+				fmt.Sprintf("%s %q has invalid not_matches regexp", fileLabel, c.Field))}
+		}
+		if re.MatchString(value) {
+			return []report.Diagnostic{diag(ids.notMatches, relPath,
+				fmt.Sprintf("%s %q must not match %q", fileLabel, c.Field, *c.NotMatches))}
 		}
 	}
-
-	if len(c.Allowed) > 0 {
-		allowed := map[string]struct{}{}
-		for _, a := range c.Allowed {
-			allowed[a] = struct{}{}
-		}
-		for _, v := range values {
-			if _, ok := allowed[v]; !ok {
-				diags = append(diags, diag(ids.allowedValue, relPath,
-					fmt.Sprintf("%s %q value %q is not in the configured allowlist", fileLabel, c.Field, v)))
-			}
-		}
-	}
-
-	return diags
+	return nil
 }
 
 func isValidName(name string) bool {
