@@ -28,11 +28,11 @@ var (
 
 // Options controls skill checking behaviour.
 type Options struct {
-	Config           config.Config
-	Claude           bool
-	AllowClaudeCode  bool
-	ScanRoot         string // absolute path used as relative root for reports
-	SkillsRoot       string // absolute path to skills directory
+	Config          config.Config
+	Claude          bool
+	AllowClaudeCode bool
+	ScanRoot        string // absolute path used as relative root for reports
+	SkillsRoot      string // absolute path to skills directory
 }
 
 // Check walks SkillsRoot and validates each child directory.
@@ -353,34 +353,37 @@ func validateReadme(readmeFile string, opts Options) []report.Diagnostic {
 		diags = append(diags, diag(rules.ReadmeDescriptionMissing, relPath, "README.md frontmatter must include a non-empty description"))
 	}
 
-	if len(opts.Config.Skills.RequiredTags) > 0 {
-		tags, ok := frontmatter.StringSliceField(parsed.Data, "tags")
-		if !ok || len(tags) == 0 {
-			diags = append(diags, diag(rules.ReadmeTagsInvalid, relPath, "README.md tags must be a non-empty array of strings"))
-		} else {
-			for _, req := range opts.Config.Skills.RequiredTags {
-				if !contains(tags, req) {
-					diags = append(diags, diag(rules.ReadmeRequiredTag, relPath,
-						fmt.Sprintf("README.md tags must include %q", req)))
-				}
-			}
+	for _, c := range opts.Config.Skills.ReadmeConstraints {
+		diags = append(diags, validateReadmeConstraint(parsed.Data, relPath, c)...)
+	}
+
+	return diags
+}
+
+func validateReadmeConstraint(data map[string]any, relPath string, c config.ReadmeConstraint) []report.Diagnostic {
+	var diags []report.Diagnostic
+	values, ok := frontmatter.StringSliceField(data, c.Field)
+	if !ok || len(values) == 0 {
+		return []report.Diagnostic{diag(rules.ReadmeFieldInvalid, relPath,
+			fmt.Sprintf("README.md %q must be a non-empty array of strings", c.Field))}
+	}
+
+	for _, req := range c.MustInclude {
+		if !contains(values, req) {
+			diags = append(diags, diag(rules.ReadmeFieldRequiredValue, relPath,
+				fmt.Sprintf("README.md %q must include %q", c.Field, req)))
 		}
 	}
 
-	if len(opts.Config.Skills.AllowedPhases) > 0 {
-		phases, ok := frontmatter.StringSliceField(parsed.Data, "phases")
-		if !ok || len(phases) == 0 {
-			diags = append(diags, diag(rules.ReadmePhasesInvalid, relPath, "README.md phases must be a non-empty array of strings"))
-		} else {
-			allowed := map[string]struct{}{}
-			for _, p := range opts.Config.Skills.AllowedPhases {
-				allowed[p] = struct{}{}
-			}
-			for _, p := range phases {
-				if _, ok := allowed[p]; !ok {
-					diags = append(diags, diag(rules.ReadmePhaseValue, relPath,
-						fmt.Sprintf("invalid phase value: %s", p)))
-				}
+	if len(c.Allowed) > 0 {
+		allowed := map[string]struct{}{}
+		for _, a := range c.Allowed {
+			allowed[a] = struct{}{}
+		}
+		for _, v := range values {
+			if _, ok := allowed[v]; !ok {
+				diags = append(diags, diag(rules.ReadmeFieldAllowedValue, relPath,
+					fmt.Sprintf("README.md %q value %q is not in the configured allowlist", c.Field, v)))
 			}
 		}
 	}

@@ -45,10 +45,9 @@ const (
 	ReadmeFrontmatterInvalid = "skill/readme-frontmatter-invalid"
 	ReadmeNameMissing        = "skill/readme-name-missing"
 	ReadmeDescriptionMissing = "skill/readme-description-missing"
-	ReadmeTagsInvalid        = "skill/readme-tags-invalid"
-	ReadmeRequiredTag        = "skill/readme-required-tag"
-	ReadmePhasesInvalid      = "skill/readme-phases-invalid"
-	ReadmePhaseValue         = "skill/readme-phase-value"
+	ReadmeFieldInvalid       = "skill/readme-field-invalid"
+	ReadmeFieldRequiredValue = "skill/readme-field-required-value"
+	ReadmeFieldAllowedValue  = "skill/readme-field-allowed-value"
 	ClaudeReservedName       = "skill/claude-reserved-name"
 	ClaudeAngleBrackets      = "skill/claude-angle-brackets"
 
@@ -87,10 +86,9 @@ func All() []Rule {
 		{ReadmeFrontmatterInvalid, SeverityError, "README.md frontmatter is invalid"},
 		{ReadmeNameMissing, SeverityError, "README.md frontmatter must include a non-empty name"},
 		{ReadmeDescriptionMissing, SeverityError, "README.md frontmatter must include a non-empty description"},
-		{ReadmeTagsInvalid, SeverityError, "README.md tags must be a non-empty array of strings"},
-		{ReadmeRequiredTag, SeverityError, "README.md tags must include the configured required tag"},
-		{ReadmePhasesInvalid, SeverityError, "README.md phases must be a non-empty array of strings"},
-		{ReadmePhaseValue, SeverityError, "README.md phase value is not in the configured allowlist"},
+		{ReadmeFieldInvalid, SeverityError, "README.md constrained field must be a non-empty array of strings"},
+		{ReadmeFieldRequiredValue, SeverityError, "README.md field is missing a configured required value"},
+		{ReadmeFieldAllowedValue, SeverityError, "README.md field value is not in the configured allowlist"},
 		{ClaudeReservedName, SeverityError, "Claude.ai: name must not contain anthropic or claude"},
 		{ClaudeAngleBrackets, SeverityError, "Claude.ai: description must not contain < or >"},
 		{RovoYAMLInvalid, SeverityError, "rovo-agent.yaml must be valid YAML"},

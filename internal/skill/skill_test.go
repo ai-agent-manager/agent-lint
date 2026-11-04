@@ -1,8 +1,10 @@
 package skill_test
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/ai-agent-manager/agent-lint/internal/config"
@@ -34,8 +36,10 @@ func TestValidSkill(t *testing.T) {
 	root := testdataRoot(t)
 	cfg := config.Default()
 	cfg.Skills.RequireReadme = true
-	cfg.Skills.RequiredTags = []string{"agent-skill"}
-	cfg.Skills.AllowedPhases = []string{"build_and_release"}
+	cfg.Skills.ReadmeConstraints = []config.ReadmeConstraint{
+		{Field: "tags", MustInclude: []string{"agent-skill"}},
+		{Field: "phases", Allowed: []string{"build_and_release"}},
+	}
 
 	diags, err := skill.Check(skill.Options{
 		Config:     cfg,
@@ -52,6 +56,163 @@ func TestValidSkill(t *testing.T) {
 				t.Errorf("unexpected error on valid skill: %s: %s", d.RuleID, d.Message)
 			}
 		}
+	}
+}
+
+func TestReadmeConstraints(t *testing.T) {
+	tests := []struct {
+		name          string
+		readme        string
+		requireReadme bool
+		constraints   []config.ReadmeConstraint
+		wantIDs       []string
+	}{
+		{
+			name: "missing required value",
+			readme: `---
+name: demo-skill
+description: Demo
+tags:
+  - other
+---
+`,
+			requireReadme: true,
+			constraints: []config.ReadmeConstraint{
+				{Field: "tags", MustInclude: []string{"agent-skill"}},
+			},
+			wantIDs: []string{rules.ReadmeFieldRequiredValue},
+		},
+		{
+			name: "value outside allowlist",
+			readme: `---
+name: demo-skill
+description: Demo
+phases:
+  - unknown_phase
+---
+`,
+			requireReadme: true,
+			constraints: []config.ReadmeConstraint{
+				{Field: "phases", Allowed: []string{"build_and_release"}},
+			},
+			wantIDs: []string{rules.ReadmeFieldAllowedValue},
+		},
+		{
+			name: "field not a string list",
+			readme: `---
+name: demo-skill
+description: Demo
+tags: agent-skill
+---
+`,
+			requireReadme: true,
+			constraints: []config.ReadmeConstraint{
+				{Field: "tags", MustInclude: []string{"agent-skill"}},
+			},
+			wantIDs: []string{rules.ReadmeFieldInvalid},
+		},
+		{
+			name: "must_include and allowed on same field",
+			readme: `---
+name: demo-skill
+description: Demo
+tags:
+  - agent-skill
+  - extra
+---
+`,
+			requireReadme: true,
+			constraints: []config.ReadmeConstraint{
+				{
+					Field:       "tags",
+					MustInclude: []string{"agent-skill"},
+					Allowed:     []string{"agent-skill", "library"},
+				},
+			},
+			wantIDs: []string{rules.ReadmeFieldAllowedValue},
+		},
+		{
+			name: "constraints ignored when require_readme is false",
+			readme: `---
+name: demo-skill
+description: Demo
+tags:
+  - other
+---
+`,
+			requireReadme: false,
+			constraints: []config.ReadmeConstraint{
+				{Field: "tags", MustInclude: []string{"agent-skill"}},
+			},
+			wantIDs: nil,
+		},
+		{
+			name: "valid constraints",
+			readme: `---
+name: demo-skill
+description: Demo
+tags:
+  - agent-skill
+phases:
+  - build_and_release
+---
+`,
+			requireReadme: true,
+			constraints: []config.ReadmeConstraint{
+				{Field: "tags", MustInclude: []string{"agent-skill"}},
+				{Field: "phases", Allowed: []string{"build_and_release"}},
+			},
+			wantIDs: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := t.TempDir()
+			skillDir := filepath.Join(root, "demo-skill")
+			if err := os.MkdirAll(skillDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			skillMD := `---
+name: demo-skill
+description: Demo skill for README constraint tests.
+---
+
+# Demo
+`
+			if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(skillMD), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(skillDir, "README.md"), []byte(tt.readme), 0o644); err != nil {
+				t.Fatal(err)
+			}
+
+			cfg := config.Default()
+			cfg.Skills.RequireReadme = tt.requireReadme
+			cfg.Skills.ReadmeConstraints = tt.constraints
+
+			diags, err := skill.Check(skill.Options{
+				Config:     cfg,
+				ScanRoot:   root,
+				SkillsRoot: root,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			for _, id := range tt.wantIDs {
+				if !hasRule(diags, id) {
+					t.Fatalf("expected rule %s; got %#v", id, diags)
+				}
+			}
+			if tt.wantIDs == nil {
+				for _, d := range diags {
+					if strings.HasPrefix(d.RuleID, "skill/readme-field-") && !d.Ignored {
+						t.Fatalf("unexpected constraint error: %s: %s", d.RuleID, d.Message)
+					}
+				}
+			}
+		})
 	}
 }
 

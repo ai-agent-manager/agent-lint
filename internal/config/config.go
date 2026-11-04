@@ -4,6 +4,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -16,13 +17,19 @@ type Config struct {
 
 // SkillsConfig holds skill-checker settings.
 type SkillsConfig struct {
-	MaxBodyLines          int      `yaml:"max_body_lines"`
-	MaxBodyTokens         int      `yaml:"max_body_tokens"`
-	RequireReadme         bool     `yaml:"require_readme"`
-	RequiredTags          []string `yaml:"required_tags"`
-	AllowedPhases         []string `yaml:"allowed_phases"`
-	AllowClaudeCodeFields bool     `yaml:"allow_claude_code_fields"`
-	ClaudeCodeFields      []string `yaml:"claude_code_fields"`
+	MaxBodyLines          int                `yaml:"max_body_lines"`
+	MaxBodyTokens         int                `yaml:"max_body_tokens"`
+	RequireReadme         bool               `yaml:"require_readme"`
+	ReadmeConstraints     []ReadmeConstraint `yaml:"readme_constraints"`
+	AllowClaudeCodeFields bool               `yaml:"allow_claude_code_fields"`
+	ClaudeCodeFields      []string           `yaml:"claude_code_fields"`
+}
+
+// ReadmeConstraint validates a string-list field in README.md frontmatter.
+type ReadmeConstraint struct {
+	Field       string   `yaml:"field"`
+	MustInclude []string `yaml:"must_include"`
+	Allowed     []string `yaml:"allowed"`
 }
 
 // IgnoreConfig embeds ignore entries in the main config file.
@@ -89,7 +96,23 @@ func Load(path string) (Config, error) {
 	if cfg.Skills.MaxBodyTokens <= 0 {
 		cfg.Skills.MaxBodyTokens = 5000
 	}
+	if err := validateReadmeConstraints(cfg.Skills.ReadmeConstraints); err != nil {
+		return Config{}, fmt.Errorf("config %s: %w", path, err)
+	}
 	return cfg, nil
+}
+
+func validateReadmeConstraints(constraints []ReadmeConstraint) error {
+	for i, c := range constraints {
+		field := strings.TrimSpace(c.Field)
+		if field == "" {
+			return fmt.Errorf("skills.readme_constraints[%d]: field is required", i)
+		}
+		if len(c.MustInclude) == 0 && len(c.Allowed) == 0 {
+			return fmt.Errorf("skills.readme_constraints[%d] (field %q): must set must_include and/or allowed", i, field)
+		}
+	}
+	return nil
 }
 
 // LoadIgnoreFile reads .agent-lint-ignore.yaml. Missing file is OK.
