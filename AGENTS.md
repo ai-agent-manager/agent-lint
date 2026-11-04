@@ -68,6 +68,10 @@ Future asset types (e.g. Rovo) should be new packages implementing the same diag
 - Keep PRs focused. Spec/rule behaviour changes should mention agentskills.io implications in the PR body.
 - Do not commit secrets, local binaries, or `dist/`.
 
+## Specs (OpenSpec)
+
+Behaviour contracts live under `openspec/specs/`. Prefer updating those specs (via an OpenSpec change) when changing user-visible lint rules, CLI contracts, config/ignore semantics, or release/CI behaviour. Validate with `npx @fission-ai/openspec validate --specs --all`.
+
 ## Out of scope (for now)
 
 - Skill installers, cross-agent “flavors”, auto-fix, LLM/semantic quality reviews.
