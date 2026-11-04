@@ -1,0 +1,7 @@
+/dist/
+/bin/
+/agent-lint
+*.exe
+*.test
+.DS_Store
+coverage.out
