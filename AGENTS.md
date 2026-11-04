@@ -70,7 +70,13 @@ Future asset types (e.g. Rovo) should be new packages implementing the same diag
 
 ## Specs (OpenSpec)
 
-Behaviour contracts live under `openspec/specs/`. Prefer updating those specs (via an OpenSpec change) when changing user-visible lint rules, CLI contracts, config/ignore semantics, or release/CI behaviour. Validate with `npx @fission-ai/openspec validate --specs --all`.
+Behaviour contracts live under `openspec/specs/`.
+
+**All changes that are covered by an existing spec, or that change user-visible behaviour, MUST go through the OpenSpec flow** (`/opsx:propose` → apply → archive): propose a change, update or add the relevant spec deltas, implement against that change, then archive so main specs stay the source of truth. Do not land such work as a code-only PR that skips OpenSpec.
+
+That includes (non-exhaustive): lint rules and severities, CLI flags/commands/exit codes, config or ignore-file semantics, reporters/JSON shape, and release/CI behaviour users rely on.
+
+Validate with `npx @fission-ai/openspec validate --specs --all`.
 
 ## Out of scope (for now)
 
