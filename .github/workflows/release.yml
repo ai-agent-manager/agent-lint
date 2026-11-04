@@ -9,16 +9,23 @@ permissions:
   contents: write
 
 jobs:
-  goreleaser:
+  release:
+    name: GoReleaser
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: true
+
+      - name: Test
+        run: go test ./...
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
@@ -28,5 +35,5 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # PAT with contents:write on ai-agent-manager/homebrew-tap (optional; brew upload skipped if unset)
+          # Optional: PAT with contents:write on ai-agent-manager/homebrew-tap
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
