@@ -1,0 +1,50 @@
+schema: spec-driven
+
+context: |
+  Product: agent-lint — a Go CLI that lints Agent Skills (SKILL.md) with tight
+  adherence to the agentskills.io specification. Distributed as checksummed
+  GitHub Release binaries via GoReleaser and as a Homebrew formula under
+  ai-agent-manager/homebrew-tap. Apache-2.0 licensed. No npm runtime.
+
+  Normative authority for skill format:
+    - https://agentskills.io/specification
+    - Frontmatter parity target: skills-ref (agentskills/agentskills)
+
+  Policy (product choice, documented in README/AGENTS.md):
+    - SKILL.md body ≤ 500 lines and < 5000 tokens are errors by default
+      (spec phrases these as recommendations). Overrides only via config.
+    - Token estimate: ceil(utf8_rune_count / 4)
+
+  Module layout (conceptual):
+    - cmd/agent-lint          Cobra CLI
+    - internal/skill          Skill discovery + agentskills.io rules
+    - internal/frontmatter    YAML frontmatter parse
+    - internal/rules          Stable rule IDs + default severities
+    - internal/config         .agent-lint.yaml
+    - internal/ignore         Path/glob + rule-id suppressions
+    - internal/report         Human + JSON reporters, exit codes
+
+  Conventions:
+    - Go 1.22+, conventional commits
+    - Specs describe observable behaviour contracts, not file trees
+    - Rule IDs are stable (skill/<kebab-name>); renaming breaks ignore files
+    - Rovo (rovo-agent.yaml) validation is out of scope for v0.x skill checker
+      beyond conflict/skip detection
+
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Include Non-goals when scope could expand into installers, flavors, or Rovo
+  tasks:
+    - Prefer small tasks that keep go test ./... green after each chunk
+  spec:
+    - Requirements use SHALL/SHOULD and scenario WHEN/THEN form
+    - Cite agentskills.io constraints explicitly where applicable
+
+operations:
+  apply:
+    guidance:
+      - Run go test ./... before considering apply complete
+  archive:
+    guidance:
+      - Summarize which main specs changed and whether rule IDs were added
