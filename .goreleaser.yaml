@@ -49,21 +49,8 @@ changelog:
       - "^test:"
       - "^ci:"
 
-brews:
-  - repository:
-      owner: ai-agent-manager
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    directory: Formula
-    homepage: https://github.com/ai-agent-manager/agent-lint
-    description: Lint Agent Skills against the agentskills.io specification
-    license: Apache-2.0
-    # Formula is maintained in ai-agent-manager/homebrew-tap; enable when HOMEBREW_TAP_GITHUB_TOKEN is set.
-    skip_upload: true
-    test: |
-      system "#{bin}/agent-lint", "list-rules"
-    install: |
-      bin.install "agent-lint"
+# Homebrew formula is maintained manually in ai-agent-manager/homebrew-tap
+# (GoReleaser `brews` is deprecated in favour of homebrew_casks).
 
 release:
   github:
