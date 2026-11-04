@@ -27,13 +27,18 @@ type SkillsConfig struct {
 	ClaudeCodeFields      []string                `yaml:"claude_code_fields"`
 }
 
-// FrontmatterConstraint validates a string frontmatter field via exactly one operator.
+// FrontmatterConstraint validates a frontmatter field.
+// String operators (equals / not_equals / matches / not_matches): exactly one.
+// List operators (must_include / allowed): README only; either or both may be set.
+// String and list operators must not be mixed on one entry.
 type FrontmatterConstraint struct {
-	Field      string  `yaml:"field"`
-	Equals     *string `yaml:"equals"`
-	NotEquals  *string `yaml:"not_equals"`
-	Matches    *string `yaml:"matches"`
-	NotMatches *string `yaml:"not_matches"`
+	Field       string   `yaml:"field"`
+	Equals      *string  `yaml:"equals"`
+	NotEquals   *string  `yaml:"not_equals"`
+	Matches     *string  `yaml:"matches"`
+	NotMatches  *string  `yaml:"not_matches"`
+	MustInclude []string `yaml:"must_include"`
+	Allowed     []string `yaml:"allowed"`
 }
 
 // IgnoreConfig embeds ignore entries in the main config file.
@@ -100,41 +105,56 @@ func Load(path string) (Config, error) {
 	if cfg.Skills.MaxBodyTokens <= 0 {
 		cfg.Skills.MaxBodyTokens = 5000
 	}
-	if err := validateConstraints("skills.readme_constraints", cfg.Skills.ReadmeConstraints); err != nil {
+	if err := validateConstraints("skills.readme_constraints", cfg.Skills.ReadmeConstraints, true); err != nil {
 		return Config{}, fmt.Errorf("config %s: %w", path, err)
 	}
-	if err := validateConstraints("skills.skill_constraints", cfg.Skills.SkillConstraints); err != nil {
+	if err := validateConstraints("skills.skill_constraints", cfg.Skills.SkillConstraints, false); err != nil {
 		return Config{}, fmt.Errorf("config %s: %w", path, err)
 	}
 	return cfg, nil
 }
 
-func validateConstraints(path string, constraints []FrontmatterConstraint) error {
+func validateConstraints(path string, constraints []FrontmatterConstraint, allowListOps bool) error {
 	for i, c := range constraints {
 		field := strings.TrimSpace(c.Field)
 		if field == "" {
 			return fmt.Errorf("%s[%d]: field is required", path, i)
 		}
-		ops := 0
+
+		stringOps := 0
 		if c.Equals != nil {
-			ops++
+			stringOps++
 		}
 		if c.NotEquals != nil {
-			ops++
+			stringOps++
 		}
 		if c.Matches != nil {
-			ops++
+			stringOps++
 			if _, err := regexp.Compile(*c.Matches); err != nil {
 				return fmt.Errorf("%s[%d] (field %q): invalid matches regexp: %w", path, i, field, err)
 			}
 		}
 		if c.NotMatches != nil {
-			ops++
+			stringOps++
 			if _, err := regexp.Compile(*c.NotMatches); err != nil {
 				return fmt.Errorf("%s[%d] (field %q): invalid not_matches regexp: %w", path, i, field, err)
 			}
 		}
-		if ops != 1 {
+
+		hasList := len(c.MustInclude) > 0 || len(c.Allowed) > 0
+		if hasList && !allowListOps {
+			return fmt.Errorf("%s[%d] (field %q): must_include and allowed are only valid on readme_constraints", path, i, field)
+		}
+		if stringOps > 0 && hasList {
+			return fmt.Errorf("%s[%d] (field %q): do not mix string operators with must_include/allowed", path, i, field)
+		}
+		if stringOps == 0 && !hasList {
+			if allowListOps {
+				return fmt.Errorf("%s[%d] (field %q): set exactly one string operator, or must_include and/or allowed", path, i, field)
+			}
+			return fmt.Errorf("%s[%d] (field %q): set exactly one of equals, not_equals, matches, not_matches", path, i, field)
+		}
+		if stringOps > 1 {
 			return fmt.Errorf("%s[%d] (field %q): set exactly one of equals, not_equals, matches, not_matches", path, i, field)
 		}
 	}

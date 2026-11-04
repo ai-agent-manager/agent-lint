@@ -39,8 +39,8 @@ func TestValidSkill(t *testing.T) {
 	cfg := config.Default()
 	cfg.Skills.RequireReadme = true
 	cfg.Skills.ReadmeConstraints = []config.FrontmatterConstraint{
-		{Field: "tags", Equals: strPtr("agent-skill")},
-		{Field: "phases", Matches: strPtr("^build_and_release$")},
+		{Field: "tags", MustInclude: []string{"agent-skill"}},
+		{Field: "phases", Allowed: []string{"build_and_release"}},
 	}
 	cfg.Skills.SkillConstraints = []config.FrontmatterConstraint{
 		{Field: "metadata.phases", Equals: strPtr("build_and_release")},
@@ -130,7 +130,7 @@ tags: temp-123
 			wantIDs: []string{rules.ReadmeFieldNotMatches},
 		},
 		{
-			name: "field not a string",
+			name: "string field expected but got list",
 			readme: `---
 name: demo-skill
 description: Demo
@@ -141,6 +141,50 @@ tags:
 			requireReadme: true,
 			constraints: []config.FrontmatterConstraint{
 				{Field: "tags", Equals: strPtr("agent-skill")},
+			},
+			wantIDs: []string{rules.ReadmeFieldInvalid},
+		},
+		{
+			name: "must_include failure",
+			readme: `---
+name: demo-skill
+description: Demo
+tags:
+  - other
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "tags", MustInclude: []string{"agent-skill"}},
+			},
+			wantIDs: []string{rules.ReadmeFieldRequiredValue},
+		},
+		{
+			name: "allowed failure",
+			readme: `---
+name: demo-skill
+description: Demo
+phases:
+  - unknown_phase
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "phases", Allowed: []string{"build_and_release"}},
+			},
+			wantIDs: []string{rules.ReadmeFieldAllowedValue},
+		},
+		{
+			name: "list field expected but got string",
+			readme: `---
+name: demo-skill
+description: Demo
+tags: agent-skill
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "tags", MustInclude: []string{"agent-skill"}},
 			},
 			wantIDs: []string{rules.ReadmeFieldInvalid},
 		},
@@ -159,18 +203,21 @@ tags: other
 			wantIDs: nil,
 		},
 		{
-			name: "valid constraints",
+			name: "valid string and list constraints",
 			readme: `---
 name: demo-skill
-description: Demo
-tags: agent-skill
-phases: build_and_release
+description: Demo skill readme
+tags:
+  - agent-skill
+phases:
+  - build_and_release
 ---
 `,
 			requireReadme: true,
 			constraints: []config.FrontmatterConstraint{
-				{Field: "tags", Equals: strPtr("agent-skill")},
-				{Field: "phases", Matches: strPtr("^build_and_release$")},
+				{Field: "description", Matches: strPtr("(?i)demo")},
+				{Field: "tags", MustInclude: []string{"agent-skill"}},
+				{Field: "phases", Allowed: []string{"build_and_release"}},
 			},
 			wantIDs: nil,
 		},

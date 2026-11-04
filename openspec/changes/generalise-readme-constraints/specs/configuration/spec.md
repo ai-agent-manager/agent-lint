@@ -4,7 +4,13 @@
 
 When `skills.require_readme` is true, each skill directory SHALL include a `README.md` with valid frontmatter `name` and `description`, and SHALL satisfy every entry in `skills.readme_constraints` when that list is non-empty.
 
-Each `readme_constraints` entry SHALL name a dotted frontmatter `field` path and SHALL set exactly one operator among `equals`, `not_equals`, `matches`, and `not_matches`. The resolved value SHALL be a YAML string. `equals` / `not_equals` compare the string exactly; `matches` / `not_matches` apply a Go regular expression to the string. Entries with no operator, more than one operator, an empty `field`, or an invalid regular expression SHALL be rejected at config load (exit code `2`).
+Each `readme_constraints` entry SHALL name a dotted frontmatter `field` path and SHALL use either string operators or list operators, not both.
+
+String operators: exactly one of `equals`, `not_equals`, `matches`, or `not_matches`. The resolved value SHALL be a YAML string. `matches` / `not_matches` use a Go regular expression.
+
+List operators: `must_include` and/or `allowed`. The resolved value SHALL be a non-empty YAML array of strings. When `must_include` is set, every listed value SHALL appear in the array. When `allowed` is set, every array value SHALL be a member of that allowlist.
+
+Entries with an empty `field`, no operators, mixed string and list operators, more than one string operator, or an invalid regular expression SHALL be rejected at config load (exit code `2`).
 
 #### Scenario: Missing README
 
@@ -21,21 +27,31 @@ Each `readme_constraints` entry SHALL name a dotted frontmatter `field` path and
 - **WHEN** a constraint has `matches` set and the README field string does not match the pattern
 - **THEN** an error with rule ID `skill/readme-field-matches` is emitted
 
-#### Scenario: Field missing or not a string
+#### Scenario: Field missing or wrong type
 
-- **WHEN** a constraint path is missing or does not resolve to a string
+- **WHEN** a string-operator path is missing or not a string, or a list-operator path is missing or not a non-empty string array
 - **THEN** an error with rule ID `skill/readme-field-invalid` is emitted
+
+#### Scenario: Must include failure
+
+- **WHEN** a constraint has `must_include: [agent-skill]` and the README field array omits `agent-skill`
+- **THEN** an error with rule ID `skill/readme-field-required-value` is emitted
+
+#### Scenario: Allowed failure
+
+- **WHEN** a constraint has a non-empty `allowed` list and the README field array contains a value outside that set
+- **THEN** an error with rule ID `skill/readme-field-allowed-value` is emitted
 
 #### Scenario: Invalid constraint entry rejected
 
-- **WHEN** a `readme_constraints` entry sets zero or multiple operators, or an invalid `matches` / `not_matches` pattern
+- **WHEN** a `readme_constraints` entry sets zero operators, mixes string and list operators, sets multiple string operators, or an invalid `matches` / `not_matches` pattern
 - **THEN** configuration loading fails with exit code `2`
 
 ## ADDED Requirements
 
 ### Requirement: Skill Frontmatter Constraints
 
-When `skills.skill_constraints` is non-empty, each skill's `SKILL.md` frontmatter SHALL satisfy every entry. Entries SHALL use the same dotted `field` path and single-operator semantics as `readme_constraints`. Failures SHALL use `skill/skill-field-invalid`, `skill/skill-field-equals`, `skill/skill-field-not-equals`, `skill/skill-field-matches`, or `skill/skill-field-not-matches` as appropriate. Invalid entries SHALL be rejected at config load (exit code `2`).
+When `skills.skill_constraints` is non-empty, each skill's `SKILL.md` frontmatter SHALL satisfy every entry. Entries SHALL use dotted `field` paths and exactly one string operator (`equals`, `not_equals`, `matches`, `not_matches`). List operators (`must_include`, `allowed`) SHALL be rejected at config load (exit code `2`). Failures SHALL use `skill/skill-field-invalid`, `skill/skill-field-equals`, `skill/skill-field-not-equals`, `skill/skill-field-matches`, or `skill/skill-field-not-matches` as appropriate.
 
 #### Scenario: Metadata equals failure
 

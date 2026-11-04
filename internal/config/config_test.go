@@ -18,8 +18,10 @@ skills:
   readme_constraints:
     - field: name
       equals: Valid Skill
-    - field: description
-      matches: "(?i)fixture"
+    - field: tags
+      must_include: [agent-skill]
+    - field: phases
+      allowed: [build_and_release]
   skill_constraints:
     - field: metadata.phases
       matches: "^(build_and_release)$"
@@ -33,8 +35,8 @@ skills:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(cfg.Skills.ReadmeConstraints) != 2 {
-		t.Fatalf("expected 2 readme constraints, got %d", len(cfg.Skills.ReadmeConstraints))
+	if len(cfg.Skills.ReadmeConstraints) != 3 {
+		t.Fatalf("expected 3 readme constraints, got %d", len(cfg.Skills.ReadmeConstraints))
 	}
 	if len(cfg.Skills.SkillConstraints) != 2 {
 		t.Fatalf("expected 2 skill constraints, got %d", len(cfg.Skills.SkillConstraints))
@@ -88,6 +90,27 @@ skills:
     - equals: x
 `,
 			wantSub: "field is required",
+		},
+		{
+			name: "list ops rejected on skill_constraints",
+			snippet: `
+skills:
+  skill_constraints:
+    - field: metadata.tags
+      must_include: [agent-skill]
+`,
+			wantSub: "only valid on readme_constraints",
+		},
+		{
+			name: "mixed string and list ops",
+			snippet: `
+skills:
+  readme_constraints:
+    - field: tags
+      equals: agent-skill
+      must_include: [agent-skill]
+`,
+			wantSub: "do not mix",
 		},
 	}
 

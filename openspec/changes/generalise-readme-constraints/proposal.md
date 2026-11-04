@@ -7,8 +7,8 @@
 - Remove `skills.required_tags` and `skills.allowed_phases` (pre-v1.0; no compatibility shim).
 - Remove the old tag/phase rule IDs.
 - Add parallel config lists `skills.readme_constraints` and `skills.skill_constraints`.
-- Each entry names a dotted `field` path and exactly one string operator: `equals`, `not_equals`, `matches`, or `not_matches` (`matches` / `not_matches` use Go/RE2 regular expressions).
-- README constraints apply when `require_readme` is true; skill constraints apply whenever configured.
+- Each entry names a dotted `field` path. String operators (`equals`, `not_equals`, `matches`, `not_matches`) are available on both; README also supports list operators (`must_include`, `allowed`) for YAML string arrays. Do not mix string and list operators on one entry.
+- README constraints apply when `require_readme` is true; skill constraints apply whenever configured (string operators only).
 - The root key of each `skill_constraints` field path is carved out of the SKILL.md allowlist when needed (so top-level org keys still work; `metadata.*` needs no carve-out).
 - Emit file- and operator-specific rule IDs for type failures and operator failures.
 - Update docs, fixtures, and examples.

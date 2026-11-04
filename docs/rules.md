@@ -55,7 +55,7 @@ Markdown links are checked for existence. Plain-text path mentions in prose are 
 
 When `require_readme` is configured: `skill/readme-missing`, `skill/readme-frontmatter-invalid`, `skill/readme-name-missing`, `skill/readme-description-missing`.
 
-When `readme_constraints` is also configured: `skill/readme-field-invalid`, `skill/readme-field-equals`, `skill/readme-field-not-equals`, `skill/readme-field-matches`, `skill/readme-field-not-matches`.
+When `readme_constraints` is also configured: `skill/readme-field-invalid`, `skill/readme-field-equals`, `skill/readme-field-not-equals`, `skill/readme-field-matches`, `skill/readme-field-not-matches`, `skill/readme-field-required-value`, `skill/readme-field-allowed-value`.
 
 These README rules also apply to Rovo-only directories when README requirements are enabled.
 

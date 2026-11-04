@@ -7,15 +7,15 @@ See proposal.md — Why. agentskills.io `metadata` is string→string; list-shap
 **Goals:**
 
 - Parallel `readme_constraints` / `skill_constraints`
-- Exactly one operator per entry: `equals` | `not_equals` | `matches` | `not_matches`
+- String operators on both; list operators (`must_include` / `allowed`) on README only
 - Dotted field paths (`metadata.phases`)
 - Validate regexp syntax at config load
 - File- and operator-specific rule IDs
 
 **Non-Goals:**
 
-- YAML sequence operators
-- Compatibility shims for `must_include` / `allowed` / old keys
+- List operators on `skill_constraints` (agentskills.io metadata is string-valued)
+- Compatibility shims for old `required_tags` / `allowed_phases` keys
 
 ## Decisions
 
@@ -25,10 +25,12 @@ See proposal.md — Why. agentskills.io `metadata` is string→string; list-shap
 skills:
   require_readme: true
   readme_constraints:
-    - field: name
-      equals: Valid Skill
     - field: description
       matches: "(?i)fixture"
+    - field: tags
+      must_include: [agent-skill]
+    - field: phases
+      allowed: [visioning, discovery, elaboration, build_and_release, run_and_measure]
   skill_constraints:
     - field: metadata.phases
       matches: "^(visioning|discovery|elaboration|build_and_release|run_and_measure)$"
@@ -36,7 +38,7 @@ skills:
       not_equals: ""
 ```
 
-Shared type `FrontmatterConstraint` with `Field` and optional pointer/presence for the four operators; load rejects 0 or >1 operators and invalid regexps.
+Shared type `FrontmatterConstraint`. README may use string ops (exactly one) or list ops (`must_include` and/or `allowed`). Skill constraints accept string ops only. Load rejects mixes, empty operator sets, invalid regexps, and list ops on `skill_constraints`.
 
 ### 2. Path resolution
 
@@ -46,11 +48,13 @@ Split `field` on `.`. Walk maps; final value MUST be a YAML string (including em
 
 | | README | SKILL.md |
 |--|--------|----------|
-| Missing / not string | `skill/readme-field-invalid` | `skill/skill-field-invalid` |
+| Missing / wrong type | `skill/readme-field-invalid` | `skill/skill-field-invalid` |
 | `equals` failed | `skill/readme-field-equals` | `skill/skill-field-equals` |
 | `not_equals` failed | `skill/readme-field-not-equals` | `skill/skill-field-not-equals` |
 | `matches` failed | `skill/readme-field-matches` | `skill/skill-field-matches` |
 | `not_matches` failed | `skill/readme-field-not-matches` | `skill/skill-field-not-matches` |
+| `must_include` failed | `skill/readme-field-required-value` | _(n/a)_ |
+| `allowed` failed | `skill/readme-field-allowed-value` | _(n/a)_ |
 
 ### 4. Allowlist carve-out
 

@@ -50,6 +50,8 @@ const (
 	ReadmeFieldNotEquals     = "skill/readme-field-not-equals"
 	ReadmeFieldMatches       = "skill/readme-field-matches"
 	ReadmeFieldNotMatches    = "skill/readme-field-not-matches"
+	ReadmeFieldRequiredValue = "skill/readme-field-required-value"
+	ReadmeFieldAllowedValue  = "skill/readme-field-allowed-value"
 	SkillFieldInvalid        = "skill/skill-field-invalid"
 	SkillFieldEquals         = "skill/skill-field-equals"
 	SkillFieldNotEquals      = "skill/skill-field-not-equals"
@@ -93,11 +95,13 @@ func All() []Rule {
 		{ReadmeFrontmatterInvalid, SeverityError, "README.md frontmatter is invalid"},
 		{ReadmeNameMissing, SeverityError, "README.md frontmatter must include a non-empty name"},
 		{ReadmeDescriptionMissing, SeverityError, "README.md frontmatter must include a non-empty description"},
-		{ReadmeFieldInvalid, SeverityError, "README.md constrained field path must resolve to a string"},
+		{ReadmeFieldInvalid, SeverityError, "README.md constrained field path has the wrong type for its operators"},
 		{ReadmeFieldEquals, SeverityError, "README.md field does not equal the configured value"},
 		{ReadmeFieldNotEquals, SeverityError, "README.md field equals a forbidden configured value"},
 		{ReadmeFieldMatches, SeverityError, "README.md field does not match the configured regexp"},
 		{ReadmeFieldNotMatches, SeverityError, "README.md field matches a forbidden configured regexp"},
+		{ReadmeFieldRequiredValue, SeverityError, "README.md field is missing a configured required value"},
+		{ReadmeFieldAllowedValue, SeverityError, "README.md field value is not in the configured allowlist"},
 		{SkillFieldInvalid, SeverityError, "SKILL.md constrained field path must resolve to a string"},
 		{SkillFieldEquals, SeverityError, "SKILL.md field does not equal the configured value"},
 		{SkillFieldNotEquals, SeverityError, "SKILL.md field equals a forbidden configured value"},
