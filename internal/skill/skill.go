@@ -264,32 +264,43 @@ func validateBody(body, skillFile, relPath string, opts Options) []report.Diagno
 
 func validateReferences(body, skillDir, relPath string, opts Options) []report.Diagnostic {
 	var diags []report.Diagnostic
-	refs := extractReferences(body)
+	linkRefs, plainRefs := extractReferences(body)
 
 	mentioned := map[string]struct{}{}
-	for _, ref := range refs {
+	checkRef := func(ref string, requireExists bool) {
 		clean := strings.SplitN(ref, "#", 2)[0]
 		clean = strings.TrimSpace(clean)
-		if clean == "" || isExternal(clean) {
-			continue
+		if clean == "" || isExternal(clean) || isPlaceholderPath(clean) {
+			return
 		}
 		clean = filepath.ToSlash(clean)
+		clean = strings.TrimSuffix(clean, "/")
 		if strings.HasPrefix(clean, "/") || strings.Contains(clean, "..") {
 			diags = append(diags, diag(rules.ReferenceDepth, relPath,
 				fmt.Sprintf("reference %q must be a relative path from the skill root (no .. or absolute paths)", ref)))
-			continue
-		}
-		depth := referenceDepth(clean)
-		if depth > 1 {
-			diags = append(diags, diag(rules.ReferenceDepth, relPath,
-				fmt.Sprintf("reference %q is %d levels deep; agentskills.io requires at most one directory level from SKILL.md", clean, depth)))
+			return
 		}
 		abs := filepath.Join(skillDir, filepath.FromSlash(clean))
 		mentioned[filepath.Clean(abs)] = struct{}{}
-		if !fileExists(abs) {
+		exists := pathExists(abs)
+		// Depth limits apply to real skill-local references (links, or plain paths that exist).
+		if (requireExists || exists) && referenceDepth(clean) > 1 {
+			diags = append(diags, diag(rules.ReferenceDepth, relPath,
+				fmt.Sprintf("reference %q is %d levels deep; agentskills.io requires at most one directory level from SKILL.md", clean, referenceDepth(clean))))
+		}
+		if requireExists && !exists {
 			diags = append(diags, diag(rules.ReferenceMissing, relPath,
 				fmt.Sprintf("referenced path %q does not exist", clean)))
 		}
+	}
+
+	// Markdown links are authoritative references and must exist.
+	for _, ref := range linkRefs {
+		checkRef(ref, true)
+	}
+	// Plain path mentions only contribute to orphan detection (examples often use fictional paths).
+	for _, ref := range plainRefs {
+		checkRef(ref, false)
 	}
 
 	refsDir := filepath.Join(skillDir, "references")
@@ -423,10 +434,10 @@ func countLines(s string) int {
 	return n
 }
 
-func extractReferences(body string) []string {
-	var out []string
-	seen := map[string]struct{}{}
-	add := func(p string) {
+func extractReferences(body string) (links []string, plain []string) {
+	seenLink := map[string]struct{}{}
+	seenPlain := map[string]struct{}{}
+	add := func(dst *[]string, seen map[string]struct{}, p string) {
 		p = strings.TrimSpace(p)
 		p = strings.Trim(p, "\"'")
 		if p == "" {
@@ -436,15 +447,27 @@ func extractReferences(body string) []string {
 			return
 		}
 		seen[p] = struct{}{}
-		out = append(out, p)
+		*dst = append(*dst, p)
 	}
 	for _, m := range mdLinkPattern.FindAllStringSubmatch(body, -1) {
-		add(m[1])
+		add(&links, seenLink, m[1])
 	}
 	for _, m := range plainPathPattern.FindAllStringSubmatch(body, -1) {
-		add(m[1])
+		add(&plain, seenPlain, m[1])
 	}
-	return out
+	return links, plain
+}
+
+func isPlaceholderPath(path string) bool {
+	lower := strings.ToLower(strings.TrimSpace(path))
+	switch lower {
+	case "url", "uri", "path", "file", "filename", "example", "link":
+		return true
+	}
+	if strings.Contains(path, "*") {
+		return true
+	}
+	return false
 }
 
 func referenceDepth(path string) int {
@@ -467,6 +490,11 @@ func isExternal(path string) bool {
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir()
+}
+
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func findWrongCasing(dirPath string) string {
