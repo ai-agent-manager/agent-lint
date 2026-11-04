@@ -8,7 +8,7 @@ The `agent-lint` command-line interface is the sole user-facing entry point. It 
 
 ### Requirement: Check Command
 
-The CLI SHALL provide a `check` command that validates skill directories under a configurable root.
+The CLI SHALL provide a `check` command that validates skill and Rovo agent directories under a configurable root.
 
 #### Scenario: Default root
 
@@ -25,6 +25,11 @@ The CLI SHALL provide a `check` command that validates skill directories under a
 - **WHEN** the configured skills root does not exist
 - **THEN** the process exits with code `2`
 
+#### Scenario: Rovo diagnostics included
+
+- **WHEN** the skills root contains a Rovo-only directory with an invalid `rovo-agent.yaml`
+- **THEN** `check` reports the corresponding `rovo/…` diagnostics in human and JSON output
+
 ### Requirement: List Rules Command
 
 The CLI SHALL provide a `list-rules` command that prints every stable rule ID with its default severity and description.
@@ -33,6 +38,11 @@ The CLI SHALL provide a `list-rules` command that prints every stable rule ID wi
 
 - **WHEN** the user runs `agent-lint list-rules`
 - **THEN** each known rule ID is printed exactly once
+
+#### Scenario: Rovo rules listed
+
+- **WHEN** the user runs `agent-lint list-rules`
+- **THEN** every `rovo/…` rule ID is included in the output
 
 ### Requirement: Exit Codes
 
