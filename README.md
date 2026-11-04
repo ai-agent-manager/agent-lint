@@ -4,7 +4,7 @@ Lint [Agent Skills](https://agentskills.io/specification) (`SKILL.md`) with tigh
 
 Designed as a small Go CLI with checksummed GitHub release binaries and Homebrew install (no npm runtime dependency).
 
-**User documentation:** see the [`docs/`](docs/README.md) guide (install, check, config, ignores, rules, CI).
+**User documentation:** [`docs/`](docs/README.md) · **Examples:** [`examples/`](examples/README.md)
 
 ## Install
 

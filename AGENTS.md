@@ -70,7 +70,7 @@ Future asset types (e.g. Rovo) should be new packages implementing the same diag
 
 ## User documentation
 
-End-user how-to guides live in `docs/` (install, check, config, ignores, rules, CI). Keep that directory **user-facing** — not maintainer architecture, contribution process, or release engineering notes (those belong in `AGENTS.md`, OpenSpec, or workflow comments).
+End-user how-to guides live in `docs/` (install, check, config, ignores, rules, CI). Runnable demos live in `examples/` (discovery, findings, ignores). Keep both **user-facing** — not maintainer architecture, contribution process, or release engineering notes (those belong in `AGENTS.md`, OpenSpec, or workflow comments). When you change CLI behaviour that examples demonstrate, update the matching example README and fixtures.
 
 ## Specs (OpenSpec)
 
