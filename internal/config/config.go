@@ -17,16 +17,17 @@ type Config struct {
 
 // SkillsConfig holds skill-checker settings.
 type SkillsConfig struct {
-	MaxBodyLines          int                `yaml:"max_body_lines"`
-	MaxBodyTokens         int                `yaml:"max_body_tokens"`
-	RequireReadme         bool               `yaml:"require_readme"`
-	ReadmeConstraints     []ReadmeConstraint `yaml:"readme_constraints"`
-	AllowClaudeCodeFields bool               `yaml:"allow_claude_code_fields"`
-	ClaudeCodeFields      []string           `yaml:"claude_code_fields"`
+	MaxBodyLines          int                     `yaml:"max_body_lines"`
+	MaxBodyTokens         int                     `yaml:"max_body_tokens"`
+	RequireReadme         bool                    `yaml:"require_readme"`
+	ReadmeConstraints     []FrontmatterConstraint `yaml:"readme_constraints"`
+	SkillConstraints      []FrontmatterConstraint `yaml:"skill_constraints"`
+	AllowClaudeCodeFields bool                    `yaml:"allow_claude_code_fields"`
+	ClaudeCodeFields      []string                `yaml:"claude_code_fields"`
 }
 
-// ReadmeConstraint validates a string-list field in README.md frontmatter.
-type ReadmeConstraint struct {
+// FrontmatterConstraint validates a string-list field in README.md or SKILL.md frontmatter.
+type FrontmatterConstraint struct {
 	Field       string   `yaml:"field"`
 	MustInclude []string `yaml:"must_include"`
 	Allowed     []string `yaml:"allowed"`
@@ -96,20 +97,23 @@ func Load(path string) (Config, error) {
 	if cfg.Skills.MaxBodyTokens <= 0 {
 		cfg.Skills.MaxBodyTokens = 5000
 	}
-	if err := validateReadmeConstraints(cfg.Skills.ReadmeConstraints); err != nil {
+	if err := validateConstraints("skills.readme_constraints", cfg.Skills.ReadmeConstraints); err != nil {
+		return Config{}, fmt.Errorf("config %s: %w", path, err)
+	}
+	if err := validateConstraints("skills.skill_constraints", cfg.Skills.SkillConstraints); err != nil {
 		return Config{}, fmt.Errorf("config %s: %w", path, err)
 	}
 	return cfg, nil
 }
 
-func validateReadmeConstraints(constraints []ReadmeConstraint) error {
+func validateConstraints(path string, constraints []FrontmatterConstraint) error {
 	for i, c := range constraints {
 		field := strings.TrimSpace(c.Field)
 		if field == "" {
-			return fmt.Errorf("skills.readme_constraints[%d]: field is required", i)
+			return fmt.Errorf("%s[%d]: field is required", path, i)
 		}
 		if len(c.MustInclude) == 0 && len(c.Allowed) == 0 {
-			return fmt.Errorf("skills.readme_constraints[%d] (field %q): must set must_include and/or allowed", i, field)
+			return fmt.Errorf("%s[%d] (field %q): must set must_include and/or allowed", path, i, field)
 		}
 	}
 	return nil

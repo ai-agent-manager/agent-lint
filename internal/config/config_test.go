@@ -75,3 +75,44 @@ skills:
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestLoadSkillConstraintsValid(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".agent-lint.yaml")
+	content := `
+skills:
+  skill_constraints:
+    - field: phases
+      allowed: [build_and_release]
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Skills.SkillConstraints) != 1 || cfg.Skills.SkillConstraints[0].Field != "phases" {
+		t.Fatalf("unexpected skill constraints: %#v", cfg.Skills.SkillConstraints)
+	}
+}
+
+func TestLoadSkillConstraintsEmptyEntry(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".agent-lint.yaml")
+	content := `
+skills:
+  skill_constraints:
+    - field: phases
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := config.Load(path)
+	if err == nil {
+		t.Fatal("expected error for empty skill constraint")
+	}
+	if !strings.Contains(err.Error(), "skill_constraints") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

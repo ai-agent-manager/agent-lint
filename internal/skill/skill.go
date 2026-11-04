@@ -152,6 +152,11 @@ func validateFrontmatter(parsed *frontmatter.Parsed, relPath, dirName string, op
 			allowed[f] = struct{}{}
 		}
 	}
+	for _, c := range opts.Config.Skills.SkillConstraints {
+		if f := strings.TrimSpace(c.Field); f != "" {
+			allowed[f] = struct{}{}
+		}
+	}
 
 	for key := range data {
 		if _, ok := allowed[key]; !ok {
@@ -239,6 +244,14 @@ func validateFrontmatter(parsed *frontmatter.Parsed, relPath, dirName string, op
 		if _, ok := v.(string); !ok {
 			diags = append(diags, diag(rules.FrontmatterUnknownField, relPath, "license must be a string"))
 		}
+	}
+
+	for _, c := range opts.Config.Skills.SkillConstraints {
+		diags = append(diags, validateFrontmatterConstraint(data, relPath, "SKILL.md", c, fieldRuleIDs{
+			invalid:       rules.SkillFieldInvalid,
+			requiredValue: rules.SkillFieldRequiredValue,
+			allowedValue:  rules.SkillFieldAllowedValue,
+		})...)
 	}
 
 	return diags
@@ -354,24 +367,34 @@ func validateReadme(readmeFile string, opts Options) []report.Diagnostic {
 	}
 
 	for _, c := range opts.Config.Skills.ReadmeConstraints {
-		diags = append(diags, validateReadmeConstraint(parsed.Data, relPath, c)...)
+		diags = append(diags, validateFrontmatterConstraint(parsed.Data, relPath, "README.md", c, fieldRuleIDs{
+			invalid:       rules.ReadmeFieldInvalid,
+			requiredValue: rules.ReadmeFieldRequiredValue,
+			allowedValue:  rules.ReadmeFieldAllowedValue,
+		})...)
 	}
 
 	return diags
 }
 
-func validateReadmeConstraint(data map[string]any, relPath string, c config.ReadmeConstraint) []report.Diagnostic {
+type fieldRuleIDs struct {
+	invalid       string
+	requiredValue string
+	allowedValue  string
+}
+
+func validateFrontmatterConstraint(data map[string]any, relPath, fileLabel string, c config.FrontmatterConstraint, ids fieldRuleIDs) []report.Diagnostic {
 	var diags []report.Diagnostic
 	values, ok := frontmatter.StringSliceField(data, c.Field)
 	if !ok || len(values) == 0 {
-		return []report.Diagnostic{diag(rules.ReadmeFieldInvalid, relPath,
-			fmt.Sprintf("README.md %q must be a non-empty array of strings", c.Field))}
+		return []report.Diagnostic{diag(ids.invalid, relPath,
+			fmt.Sprintf("%s %q must be a non-empty array of strings", fileLabel, c.Field))}
 	}
 
 	for _, req := range c.MustInclude {
 		if !contains(values, req) {
-			diags = append(diags, diag(rules.ReadmeFieldRequiredValue, relPath,
-				fmt.Sprintf("README.md %q must include %q", c.Field, req)))
+			diags = append(diags, diag(ids.requiredValue, relPath,
+				fmt.Sprintf("%s %q must include %q", fileLabel, c.Field, req)))
 		}
 	}
 
@@ -382,8 +405,8 @@ func validateReadmeConstraint(data map[string]any, relPath string, c config.Read
 		}
 		for _, v := range values {
 			if _, ok := allowed[v]; !ok {
-				diags = append(diags, diag(rules.ReadmeFieldAllowedValue, relPath,
-					fmt.Sprintf("README.md %q value %q is not in the configured allowlist", c.Field, v)))
+				diags = append(diags, diag(ids.allowedValue, relPath,
+					fmt.Sprintf("%s %q value %q is not in the configured allowlist", fileLabel, c.Field, v)))
 			}
 		}
 	}

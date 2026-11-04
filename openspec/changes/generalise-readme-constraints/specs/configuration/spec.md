@@ -30,3 +30,29 @@ Each `readme_constraints` entry SHALL name a frontmatter `field` and MAY include
 
 - **WHEN** a `readme_constraints` entry has neither `must_include` nor `allowed` values
 - **THEN** configuration loading fails with exit code `2`
+
+## ADDED Requirements
+
+### Requirement: Skill Frontmatter Constraints
+
+When `skills.skill_constraints` is non-empty, each skill's `SKILL.md` frontmatter SHALL satisfy every entry. Each entry SHALL name a frontmatter `field` and MAY include `must_include` and/or `allowed` string lists with the same presence and membership semantics as `readme_constraints`. Entries with both lists empty SHALL be rejected at config load (exit code `2`).
+
+#### Scenario: Required list value missing on SKILL.md
+
+- **WHEN** a skill constraint has `field: tags` and `must_include: [agent-skill]` and SKILL.md `tags` omit `agent-skill`
+- **THEN** an error with rule ID `skill/skill-field-required-value` is emitted
+
+#### Scenario: Value outside allowlist on SKILL.md
+
+- **WHEN** a skill constraint has `field: phases` and a non-empty `allowed` list, and SKILL.md `phases` contains a value outside that set
+- **THEN** an error with rule ID `skill/skill-field-allowed-value` is emitted
+
+#### Scenario: Field not a string list on SKILL.md
+
+- **WHEN** a skill constraint applies to a field that is missing, empty, or not an array of strings
+- **THEN** an error with rule ID `skill/skill-field-invalid` is emitted
+
+#### Scenario: Empty skill constraint entry rejected
+
+- **WHEN** a `skill_constraints` entry has neither `must_include` nor `allowed` values
+- **THEN** configuration loading fails with exit code `2`

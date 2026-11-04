@@ -59,6 +59,10 @@ When `readme_constraints` is also configured: `skill/readme-field-invalid`, `ski
 
 These README rules also apply to Rovo-only directories when README requirements are enabled.
 
+### Config-gated SKILL.md field constraints
+
+When `skill_constraints` is configured: `skill/skill-field-invalid`, `skill/skill-field-required-value`, `skill/skill-field-allowed-value`. Named fields do not emit `skill/frontmatter-unknown-field`.
+
 ### Rovo agents (`rovo-agent.yaml`)
 
 Validated against the vendored agent-manager JSON Schema (`internal/rovo/schemas/rovo-agent.schema.json`, Draft 2020-12). **v2-beta only** (`apiVersion: rovo.atlassian.com/v2-beta`, `kind: StudioAgent`).

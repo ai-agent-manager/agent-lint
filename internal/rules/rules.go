@@ -48,6 +48,9 @@ const (
 	ReadmeFieldInvalid       = "skill/readme-field-invalid"
 	ReadmeFieldRequiredValue = "skill/readme-field-required-value"
 	ReadmeFieldAllowedValue  = "skill/readme-field-allowed-value"
+	SkillFieldInvalid        = "skill/skill-field-invalid"
+	SkillFieldRequiredValue  = "skill/skill-field-required-value"
+	SkillFieldAllowedValue   = "skill/skill-field-allowed-value"
 	ClaudeReservedName       = "skill/claude-reserved-name"
 	ClaudeAngleBrackets      = "skill/claude-angle-brackets"
 
@@ -89,6 +92,9 @@ func All() []Rule {
 		{ReadmeFieldInvalid, SeverityError, "README.md constrained field must be a non-empty array of strings"},
 		{ReadmeFieldRequiredValue, SeverityError, "README.md field is missing a configured required value"},
 		{ReadmeFieldAllowedValue, SeverityError, "README.md field value is not in the configured allowlist"},
+		{SkillFieldInvalid, SeverityError, "SKILL.md constrained field must be a non-empty array of strings"},
+		{SkillFieldRequiredValue, SeverityError, "SKILL.md field is missing a configured required value"},
+		{SkillFieldAllowedValue, SeverityError, "SKILL.md field value is not in the configured allowlist"},
 		{ClaudeReservedName, SeverityError, "Claude.ai: name must not contain anthropic or claude"},
 		{ClaudeAngleBrackets, SeverityError, "Claude.ai: description must not contain < or >"},
 		{RovoYAMLInvalid, SeverityError, "rovo-agent.yaml must be valid YAML"},
