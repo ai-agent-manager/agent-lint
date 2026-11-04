@@ -5,22 +5,45 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    name: Test
+    name: Build and test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: true
 
-      - name: Test
-        run: go test ./...
+      - name: Download modules
+        run: go mod download
 
       - name: Vet
         run: go vet ./...
 
+      - name: Test
+        run: go test ./...
+
       - name: Build
         run: go build -o /tmp/agent-lint ./cmd/agent-lint
+
+      - name: Smoke CLI
+        run: |
+          /tmp/agent-lint --version
+          /tmp/agent-lint list-rules | head -n 5
+
+      - name: Check GoReleaser config
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
