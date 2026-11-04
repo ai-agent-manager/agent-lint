@@ -60,7 +60,7 @@ Future asset types (e.g. Rovo) should be new packages implementing the same diag
 
 - CI on `main` / PRs: vet, test, build, smoke CLI, `goreleaser check`.
 - Tag `v*` pushes run GoReleaser and publish a GitHub Release with checksums.
-- Homebrew formula lives in `ai-agent-manager/homebrew-tap`. GoReleaser brew upload is currently skipped unless configured; prefer updating the tap formula when cutting a release consumers need via Homebrew.
+- After GoReleaser, Release CI runs `scripts/update-homebrew-formula.sh` to bump `Formula/agent-lint.rb` in `ai-agent-manager/homebrew-tap` from the release `checksums.txt`.
 - Do not force-push release tags that already have published assets without an explicit human request.
 
 ## Commits and PRs
