@@ -1,6 +1,6 @@
 # agent-lint documentation
 
-User guide for [agent-lint](https://github.com/ai-agent-manager/agent-lint) — a CLI that lints [Agent Skills](https://agentskills.io/specification) (`SKILL.md`) against the agentskills.io format, including hard caps on skill body size.
+User guide for [agent-lint](https://github.com/ai-agent-manager/agent-lint) — a CLI that lints [Agent Skills](https://agentskills.io/specification) (`SKILL.md`) against the agentskills.io format (including hard caps on skill body size) and structurally validates Rovo agents (`rovo-agent.yaml`).
 
 ## Contents
 

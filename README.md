@@ -1,6 +1,6 @@
 # agent-lint
 
-Lint [Agent Skills](https://agentskills.io/specification) (`SKILL.md`) with tight adherence to the agentskills.io specification — including hard caps on `SKILL.md` body size.
+Lint [Agent Skills](https://agentskills.io/specification) (`SKILL.md`) with tight adherence to the agentskills.io specification — including hard caps on `SKILL.md` body size — and structurally check Rovo agents (`rovo-agent.yaml`).
 
 Designed as a small Go CLI with checksummed GitHub release binaries and Homebrew install (no npm runtime dependency).
 
@@ -36,12 +36,13 @@ Highlights:
 - Spec allowlist for frontmatter fields (Claude Code extensions opt-in)
 - **Body ≤ 500 lines** and **&lt; 5000 tokens** as errors by default (`ceil(rune_count / 4)` estimator)
 - Relative markdown references: one level deep; linked paths must exist
+- Rovo `rovo-agent.yaml` against the vendored agent-manager JSON Schema (Studio `v2-beta`)
 
 Rule catalogue: [docs/rules.md](docs/rules.md). Config and ignores: [docs/configuration.md](docs/configuration.md), [docs/ignore.md](docs/ignore.md).
 
 ## Roadmap
 
-- Rovo agent checker
+- Common Agent Format (`AGENT.md`) checker
 - `--fix` for common issues
 - Optional GitHub Action wrapper
 

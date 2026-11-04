@@ -1,0 +1,7 @@
+apiVersion: "rovo.atlassian.com/v2-beta"
+kind: "StudioAgent"
+name: "Bad Field Types"
+description: "Optional fields with wrong types."
+instructions: "Enough to pass required checks."
+conversationStarters: "not-an-array"
+webSearch: "yes"

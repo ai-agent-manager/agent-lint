@@ -1,5 +1,6 @@
-apiVersion: rovo.atlassian.com/v1
-kind: Agent
-identity:
-  name: Backlog Triage
-  description: Example Rovo agent stub used only to show discovery skipping.
+apiVersion: rovo.atlassian.com/v2-beta
+kind: StudioAgent
+name: Backlog Triage
+description: Example Rovo agent stub used to show Rovo schema validation.
+instructions: |
+  Triage backlog items. Ask clarifying questions when scope is unclear.
