@@ -28,11 +28,11 @@ var (
 
 // Options controls skill checking behaviour.
 type Options struct {
-	Config           config.Config
-	Claude           bool
-	AllowClaudeCode  bool
-	ScanRoot         string // absolute path used as relative root for reports
-	SkillsRoot       string // absolute path to skills directory
+	Config          config.Config
+	Claude          bool
+	AllowClaudeCode bool
+	ScanRoot        string // absolute path used as relative root for reports
+	SkillsRoot      string // absolute path to skills directory
 }
 
 // Check walks SkillsRoot and validates each child directory.
@@ -152,6 +152,11 @@ func validateFrontmatter(parsed *frontmatter.Parsed, relPath, dirName string, op
 			allowed[f] = struct{}{}
 		}
 	}
+	for _, c := range opts.Config.Skills.SkillConstraints {
+		if root := constraintRoot(c.Field); root != "" {
+			allowed[root] = struct{}{}
+		}
+	}
 
 	for key := range data {
 		if _, ok := allowed[key]; !ok {
@@ -239,6 +244,16 @@ func validateFrontmatter(parsed *frontmatter.Parsed, relPath, dirName string, op
 		if _, ok := v.(string); !ok {
 			diags = append(diags, diag(rules.FrontmatterUnknownField, relPath, "license must be a string"))
 		}
+	}
+
+	for _, c := range opts.Config.Skills.SkillConstraints {
+		diags = append(diags, validateFrontmatterConstraint(data, relPath, "SKILL.md", c, fieldRuleIDs{
+			invalid:    rules.SkillFieldInvalid,
+			equals:     rules.SkillFieldEquals,
+			notEquals:  rules.SkillFieldNotEquals,
+			matches:    rules.SkillFieldMatches,
+			notMatches: rules.SkillFieldNotMatches,
+		})...)
 	}
 
 	return diags
@@ -353,39 +368,172 @@ func validateReadme(readmeFile string, opts Options) []report.Diagnostic {
 		diags = append(diags, diag(rules.ReadmeDescriptionMissing, relPath, "README.md frontmatter must include a non-empty description"))
 	}
 
-	if len(opts.Config.Skills.RequiredTags) > 0 {
-		tags, ok := frontmatter.StringSliceField(parsed.Data, "tags")
-		if !ok || len(tags) == 0 {
-			diags = append(diags, diag(rules.ReadmeTagsInvalid, relPath, "README.md tags must be a non-empty array of strings"))
-		} else {
-			for _, req := range opts.Config.Skills.RequiredTags {
-				if !contains(tags, req) {
-					diags = append(diags, diag(rules.ReadmeRequiredTag, relPath,
-						fmt.Sprintf("README.md tags must include %q", req)))
-				}
-			}
-		}
-	}
-
-	if len(opts.Config.Skills.AllowedPhases) > 0 {
-		phases, ok := frontmatter.StringSliceField(parsed.Data, "phases")
-		if !ok || len(phases) == 0 {
-			diags = append(diags, diag(rules.ReadmePhasesInvalid, relPath, "README.md phases must be a non-empty array of strings"))
-		} else {
-			allowed := map[string]struct{}{}
-			for _, p := range opts.Config.Skills.AllowedPhases {
-				allowed[p] = struct{}{}
-			}
-			for _, p := range phases {
-				if _, ok := allowed[p]; !ok {
-					diags = append(diags, diag(rules.ReadmePhaseValue, relPath,
-						fmt.Sprintf("invalid phase value: %s", p)))
-				}
-			}
-		}
+	for _, c := range opts.Config.Skills.ReadmeConstraints {
+		diags = append(diags, validateFrontmatterConstraint(parsed.Data, relPath, "README.md", c, fieldRuleIDs{
+			invalid:       rules.ReadmeFieldInvalid,
+			equals:        rules.ReadmeFieldEquals,
+			notEquals:     rules.ReadmeFieldNotEquals,
+			matches:       rules.ReadmeFieldMatches,
+			notMatches:    rules.ReadmeFieldNotMatches,
+			requiredValue: rules.ReadmeFieldRequiredValue,
+			allowedValue:  rules.ReadmeFieldAllowedValue,
+		})...)
 	}
 
 	return diags
+}
+
+type fieldRuleIDs struct {
+	invalid       string
+	equals        string
+	notEquals     string
+	matches       string
+	notMatches    string
+	requiredValue string
+	allowedValue  string
+}
+
+func constraintRoot(field string) string {
+	field = strings.TrimSpace(field)
+	if field == "" {
+		return ""
+	}
+	if i := strings.IndexByte(field, '.'); i >= 0 {
+		return field[:i]
+	}
+	return field
+}
+
+func valueAtPath(data map[string]any, path string) (any, bool) {
+	parts := strings.Split(path, ".")
+	var cur any = data
+	for _, part := range parts {
+		if part == "" {
+			return nil, false
+		}
+		m, ok := cur.(map[string]any)
+		if !ok {
+			return nil, false
+		}
+		next, ok := m[part]
+		if !ok || next == nil {
+			return nil, false
+		}
+		cur = next
+	}
+	return cur, true
+}
+
+func stringAtPath(data map[string]any, path string) (string, bool) {
+	cur, ok := valueAtPath(data, path)
+	if !ok {
+		return "", false
+	}
+	s, ok := cur.(string)
+	if !ok {
+		return "", false
+	}
+	return s, true
+}
+
+func stringSliceAtPath(data map[string]any, path string) ([]string, bool) {
+	cur, ok := valueAtPath(data, path)
+	if !ok {
+		return nil, false
+	}
+	arr, ok := cur.([]any)
+	if !ok {
+		return nil, false
+	}
+	out := make([]string, 0, len(arr))
+	for _, item := range arr {
+		s, ok := item.(string)
+		if !ok || strings.TrimSpace(s) == "" {
+			return nil, false
+		}
+		out = append(out, s)
+	}
+	if len(out) == 0 {
+		return nil, false
+	}
+	return out, true
+}
+
+func validateFrontmatterConstraint(data map[string]any, relPath, fileLabel string, c config.FrontmatterConstraint, ids fieldRuleIDs) []report.Diagnostic {
+	if len(c.MustInclude) > 0 || len(c.Allowed) > 0 {
+		return validateListConstraint(data, relPath, fileLabel, c, ids)
+	}
+	return validateStringConstraint(data, relPath, fileLabel, c, ids)
+}
+
+func validateListConstraint(data map[string]any, relPath, fileLabel string, c config.FrontmatterConstraint, ids fieldRuleIDs) []report.Diagnostic {
+	var diags []report.Diagnostic
+	values, ok := stringSliceAtPath(data, c.Field)
+	if !ok {
+		return []report.Diagnostic{diag(ids.invalid, relPath,
+			fmt.Sprintf("%s %q must be a non-empty array of strings", fileLabel, c.Field))}
+	}
+	for _, req := range c.MustInclude {
+		if !contains(values, req) {
+			diags = append(diags, diag(ids.requiredValue, relPath,
+				fmt.Sprintf("%s %q must include %q", fileLabel, c.Field, req)))
+		}
+	}
+	if len(c.Allowed) > 0 {
+		allowed := map[string]struct{}{}
+		for _, a := range c.Allowed {
+			allowed[a] = struct{}{}
+		}
+		for _, v := range values {
+			if _, ok := allowed[v]; !ok {
+				diags = append(diags, diag(ids.allowedValue, relPath,
+					fmt.Sprintf("%s %q value %q is not in the configured allowlist", fileLabel, c.Field, v)))
+			}
+		}
+	}
+	return diags
+}
+
+func validateStringConstraint(data map[string]any, relPath, fileLabel string, c config.FrontmatterConstraint, ids fieldRuleIDs) []report.Diagnostic {
+	value, ok := stringAtPath(data, c.Field)
+	if !ok {
+		return []report.Diagnostic{diag(ids.invalid, relPath,
+			fmt.Sprintf("%s %q must resolve to a string", fileLabel, c.Field))}
+	}
+
+	switch {
+	case c.Equals != nil:
+		if value != *c.Equals {
+			return []report.Diagnostic{diag(ids.equals, relPath,
+				fmt.Sprintf("%s %q must equal %q", fileLabel, c.Field, *c.Equals))}
+		}
+	case c.NotEquals != nil:
+		if value == *c.NotEquals {
+			return []report.Diagnostic{diag(ids.notEquals, relPath,
+				fmt.Sprintf("%s %q must not equal %q", fileLabel, c.Field, *c.NotEquals))}
+		}
+	case c.Matches != nil:
+		re, err := regexp.Compile(*c.Matches)
+		if err != nil {
+			return []report.Diagnostic{diag(ids.invalid, relPath,
+				fmt.Sprintf("%s %q has invalid matches regexp", fileLabel, c.Field))}
+		}
+		if !re.MatchString(value) {
+			return []report.Diagnostic{diag(ids.matches, relPath,
+				fmt.Sprintf("%s %q must match %q", fileLabel, c.Field, *c.Matches))}
+		}
+	case c.NotMatches != nil:
+		re, err := regexp.Compile(*c.NotMatches)
+		if err != nil {
+			return []report.Diagnostic{diag(ids.invalid, relPath,
+				fmt.Sprintf("%s %q has invalid not_matches regexp", fileLabel, c.Field))}
+		}
+		if re.MatchString(value) {
+			return []report.Diagnostic{diag(ids.notMatches, relPath,
+				fmt.Sprintf("%s %q must not match %q", fileLabel, c.Field, *c.NotMatches))}
+		}
+	}
+	return nil
 }
 
 func isValidName(name string) bool {

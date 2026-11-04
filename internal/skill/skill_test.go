@@ -1,8 +1,10 @@
 package skill_test
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/ai-agent-manager/agent-lint/internal/config"
@@ -30,12 +32,20 @@ func hasRule(diags []report.Diagnostic, id string) bool {
 	return false
 }
 
+func strPtr(s string) *string { return &s }
+
 func TestValidSkill(t *testing.T) {
 	root := testdataRoot(t)
 	cfg := config.Default()
 	cfg.Skills.RequireReadme = true
-	cfg.Skills.RequiredTags = []string{"agent-skill"}
-	cfg.Skills.AllowedPhases = []string{"build_and_release"}
+	cfg.Skills.ReadmeConstraints = []config.FrontmatterConstraint{
+		{Field: "tags", MustInclude: []string{"agent-skill"}},
+		{Field: "phases", Allowed: []string{"build_and_release"}},
+	}
+	cfg.Skills.SkillConstraints = []config.FrontmatterConstraint{
+		{Field: "metadata.phases", Equals: strPtr("build_and_release")},
+		{Field: "metadata.author", NotEquals: strPtr("")},
+	}
 
 	diags, err := skill.Check(skill.Options{
 		Config:     cfg,
@@ -52,6 +62,344 @@ func TestValidSkill(t *testing.T) {
 				t.Errorf("unexpected error on valid skill: %s: %s", d.RuleID, d.Message)
 			}
 		}
+	}
+}
+
+func TestReadmeConstraints(t *testing.T) {
+	tests := []struct {
+		name          string
+		readme        string
+		requireReadme bool
+		constraints   []config.FrontmatterConstraint
+		wantIDs       []string
+	}{
+		{
+			name: "equals failure",
+			readme: `---
+name: demo-skill
+description: Demo
+tags: other
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "tags", Equals: strPtr("agent-skill")},
+			},
+			wantIDs: []string{rules.ReadmeFieldEquals},
+		},
+		{
+			name: "matches failure",
+			readme: `---
+name: demo-skill
+description: Demo
+phases: unknown_phase
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "phases", Matches: strPtr("^build_and_release$")},
+			},
+			wantIDs: []string{rules.ReadmeFieldMatches},
+		},
+		{
+			name: "not_equals failure",
+			readme: `---
+name: demo-skill
+description: Demo
+tags: forbidden
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "tags", NotEquals: strPtr("forbidden")},
+			},
+			wantIDs: []string{rules.ReadmeFieldNotEquals},
+		},
+		{
+			name: "not_matches failure",
+			readme: `---
+name: demo-skill
+description: Demo
+tags: temp-123
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "tags", NotMatches: strPtr("^temp-")},
+			},
+			wantIDs: []string{rules.ReadmeFieldNotMatches},
+		},
+		{
+			name: "string field expected but got list",
+			readme: `---
+name: demo-skill
+description: Demo
+tags:
+  - agent-skill
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "tags", Equals: strPtr("agent-skill")},
+			},
+			wantIDs: []string{rules.ReadmeFieldInvalid},
+		},
+		{
+			name: "must_include failure",
+			readme: `---
+name: demo-skill
+description: Demo
+tags:
+  - other
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "tags", MustInclude: []string{"agent-skill"}},
+			},
+			wantIDs: []string{rules.ReadmeFieldRequiredValue},
+		},
+		{
+			name: "allowed failure",
+			readme: `---
+name: demo-skill
+description: Demo
+phases:
+  - unknown_phase
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "phases", Allowed: []string{"build_and_release"}},
+			},
+			wantIDs: []string{rules.ReadmeFieldAllowedValue},
+		},
+		{
+			name: "list field expected but got string",
+			readme: `---
+name: demo-skill
+description: Demo
+tags: agent-skill
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "tags", MustInclude: []string{"agent-skill"}},
+			},
+			wantIDs: []string{rules.ReadmeFieldInvalid},
+		},
+		{
+			name: "constraints ignored when require_readme is false",
+			readme: `---
+name: demo-skill
+description: Demo
+tags: other
+---
+`,
+			requireReadme: false,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "tags", Equals: strPtr("agent-skill")},
+			},
+			wantIDs: nil,
+		},
+		{
+			name: "valid string and list constraints",
+			readme: `---
+name: demo-skill
+description: Demo skill readme
+tags:
+  - agent-skill
+phases:
+  - build_and_release
+---
+`,
+			requireReadme: true,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "description", Matches: strPtr("(?i)demo")},
+				{Field: "tags", MustInclude: []string{"agent-skill"}},
+				{Field: "phases", Allowed: []string{"build_and_release"}},
+			},
+			wantIDs: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := t.TempDir()
+			skillDir := filepath.Join(root, "demo-skill")
+			if err := os.MkdirAll(skillDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			skillMD := `---
+name: demo-skill
+description: Demo skill for README constraint tests.
+---
+
+# Demo
+`
+			if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(skillMD), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(skillDir, "README.md"), []byte(tt.readme), 0o644); err != nil {
+				t.Fatal(err)
+			}
+
+			cfg := config.Default()
+			cfg.Skills.RequireReadme = tt.requireReadme
+			cfg.Skills.ReadmeConstraints = tt.constraints
+
+			diags, err := skill.Check(skill.Options{
+				Config:     cfg,
+				ScanRoot:   root,
+				SkillsRoot: root,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			for _, id := range tt.wantIDs {
+				if !hasRule(diags, id) {
+					t.Fatalf("expected rule %s; got %#v", id, diags)
+				}
+			}
+			if tt.wantIDs == nil {
+				for _, d := range diags {
+					if strings.HasPrefix(d.RuleID, "skill/readme-field-") && !d.Ignored {
+						t.Fatalf("unexpected constraint error: %s: %s", d.RuleID, d.Message)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestSkillConstraints(t *testing.T) {
+	tests := []struct {
+		name        string
+		frontmatter string
+		constraints []config.FrontmatterConstraint
+		wantIDs     []string
+		forbidIDs   []string
+	}{
+		{
+			name: "metadata path passes without allowlist carve-out",
+			frontmatter: `---
+name: demo-skill
+description: Demo skill for skill constraint tests.
+metadata:
+  phases: build_and_release
+---
+`,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "metadata.phases", Equals: strPtr("build_and_release")},
+			},
+			forbidIDs: []string{rules.FrontmatterUnknownField, rules.SkillFieldInvalid, rules.SkillFieldEquals},
+		},
+		{
+			name: "top-level constrained field is carved out",
+			frontmatter: `---
+name: demo-skill
+description: Demo skill for skill constraint tests.
+phases: build_and_release
+---
+`,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "phases", Equals: strPtr("build_and_release")},
+			},
+			forbidIDs: []string{rules.FrontmatterUnknownField, rules.SkillFieldInvalid, rules.SkillFieldEquals},
+		},
+		{
+			name: "equals failure on metadata",
+			frontmatter: `---
+name: demo-skill
+description: Demo skill for skill constraint tests.
+metadata:
+  author: other
+---
+`,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "metadata.author", Equals: strPtr("agent-lint")},
+			},
+			wantIDs: []string{rules.SkillFieldEquals},
+		},
+		{
+			name: "matches failure",
+			frontmatter: `---
+name: demo-skill
+description: Demo skill for skill constraint tests.
+metadata:
+  phases: unknown_phase
+---
+`,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "metadata.phases", Matches: strPtr("^build_and_release$")},
+			},
+			wantIDs: []string{rules.SkillFieldMatches},
+		},
+		{
+			name: "field missing",
+			frontmatter: `---
+name: demo-skill
+description: Demo skill for skill constraint tests.
+---
+`,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "metadata.phases", Equals: strPtr("build_and_release")},
+			},
+			wantIDs: []string{rules.SkillFieldInvalid},
+		},
+		{
+			name: "unconstrained unknown field still rejected",
+			frontmatter: `---
+name: demo-skill
+description: Demo skill for skill constraint tests.
+owner: platform
+metadata:
+  phases: build_and_release
+---
+`,
+			constraints: []config.FrontmatterConstraint{
+				{Field: "metadata.phases", Equals: strPtr("build_and_release")},
+			},
+			wantIDs: []string{rules.FrontmatterUnknownField},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := t.TempDir()
+			skillDir := filepath.Join(root, "demo-skill")
+			if err := os.MkdirAll(skillDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			content := tt.frontmatter + "\n# Demo\n"
+			if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(content), 0o644); err != nil {
+				t.Fatal(err)
+			}
+
+			cfg := config.Default()
+			cfg.Skills.SkillConstraints = tt.constraints
+
+			diags, err := skill.Check(skill.Options{
+				Config:     cfg,
+				ScanRoot:   root,
+				SkillsRoot: root,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			for _, id := range tt.wantIDs {
+				if !hasRule(diags, id) {
+					t.Fatalf("expected rule %s; got %#v", id, diags)
+				}
+			}
+			for _, id := range tt.forbidIDs {
+				if hasRule(diags, id) {
+					t.Fatalf("did not expect rule %s; got %#v", id, diags)
+				}
+			}
+		})
 	}
 }
 

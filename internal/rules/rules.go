@@ -45,10 +45,18 @@ const (
 	ReadmeFrontmatterInvalid = "skill/readme-frontmatter-invalid"
 	ReadmeNameMissing        = "skill/readme-name-missing"
 	ReadmeDescriptionMissing = "skill/readme-description-missing"
-	ReadmeTagsInvalid        = "skill/readme-tags-invalid"
-	ReadmeRequiredTag        = "skill/readme-required-tag"
-	ReadmePhasesInvalid      = "skill/readme-phases-invalid"
-	ReadmePhaseValue         = "skill/readme-phase-value"
+	ReadmeFieldInvalid       = "skill/readme-field-invalid"
+	ReadmeFieldEquals        = "skill/readme-field-equals"
+	ReadmeFieldNotEquals     = "skill/readme-field-not-equals"
+	ReadmeFieldMatches       = "skill/readme-field-matches"
+	ReadmeFieldNotMatches    = "skill/readme-field-not-matches"
+	ReadmeFieldRequiredValue = "skill/readme-field-required-value"
+	ReadmeFieldAllowedValue  = "skill/readme-field-allowed-value"
+	SkillFieldInvalid        = "skill/skill-field-invalid"
+	SkillFieldEquals         = "skill/skill-field-equals"
+	SkillFieldNotEquals      = "skill/skill-field-not-equals"
+	SkillFieldMatches        = "skill/skill-field-matches"
+	SkillFieldNotMatches     = "skill/skill-field-not-matches"
 	ClaudeReservedName       = "skill/claude-reserved-name"
 	ClaudeAngleBrackets      = "skill/claude-angle-brackets"
 
@@ -87,10 +95,18 @@ func All() []Rule {
 		{ReadmeFrontmatterInvalid, SeverityError, "README.md frontmatter is invalid"},
 		{ReadmeNameMissing, SeverityError, "README.md frontmatter must include a non-empty name"},
 		{ReadmeDescriptionMissing, SeverityError, "README.md frontmatter must include a non-empty description"},
-		{ReadmeTagsInvalid, SeverityError, "README.md tags must be a non-empty array of strings"},
-		{ReadmeRequiredTag, SeverityError, "README.md tags must include the configured required tag"},
-		{ReadmePhasesInvalid, SeverityError, "README.md phases must be a non-empty array of strings"},
-		{ReadmePhaseValue, SeverityError, "README.md phase value is not in the configured allowlist"},
+		{ReadmeFieldInvalid, SeverityError, "README.md constrained field path has the wrong type for its operators"},
+		{ReadmeFieldEquals, SeverityError, "README.md field does not equal the configured value"},
+		{ReadmeFieldNotEquals, SeverityError, "README.md field equals a forbidden configured value"},
+		{ReadmeFieldMatches, SeverityError, "README.md field does not match the configured regexp"},
+		{ReadmeFieldNotMatches, SeverityError, "README.md field matches a forbidden configured regexp"},
+		{ReadmeFieldRequiredValue, SeverityError, "README.md field is missing a configured required value"},
+		{ReadmeFieldAllowedValue, SeverityError, "README.md field value is not in the configured allowlist"},
+		{SkillFieldInvalid, SeverityError, "SKILL.md constrained field path must resolve to a string"},
+		{SkillFieldEquals, SeverityError, "SKILL.md field does not equal the configured value"},
+		{SkillFieldNotEquals, SeverityError, "SKILL.md field equals a forbidden configured value"},
+		{SkillFieldMatches, SeverityError, "SKILL.md field does not match the configured regexp"},
+		{SkillFieldNotMatches, SeverityError, "SKILL.md field matches a forbidden configured regexp"},
 		{ClaudeReservedName, SeverityError, "Claude.ai: name must not contain anthropic or claude"},
 		{ClaudeAngleBrackets, SeverityError, "Claude.ai: description must not contain < or >"},
 		{RovoYAMLInvalid, SeverityError, "rovo-agent.yaml must be valid YAML"},
