@@ -1,0 +1,5 @@
+apiVersion: rovo.atlassian.com/v1
+kind: Agent
+identity:
+  name: Backlog Triage
+  description: Example Rovo agent stub used only to show discovery skipping.

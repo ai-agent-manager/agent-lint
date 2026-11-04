@@ -1,0 +1,18 @@
+# Paths are relative to the working directory used when invoking agent-lint.
+# These entries assume you run from the agent-lint repository root.
+ignores:
+  - path: examples/ignoring-findings/skills/Bad_Name/SKILL.md
+    rules:
+      - skill/name-format
+
+  - path: examples/ignoring-findings/skills/empty-body/SKILL.md
+    rules:
+      - skill/body-empty
+
+  - path: examples/ignoring-findings/skills/missing-link/SKILL.md
+    rules:
+      - skill/reference-missing
+
+  # Empty rules list = ignore every finding under this skill
+  - path: examples/ignoring-findings/skills/legacy-demo/**
+    rules: []

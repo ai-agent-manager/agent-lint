@@ -1,0 +1,5 @@
+apiVersion: rovo.atlassian.com/v1
+kind: Agent
+identity:
+  name: Both Definitions
+  description: Stub present only to trigger skill/asset-type-conflict.

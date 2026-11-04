@@ -13,6 +13,8 @@ User guide for [agent-lint](https://github.com/ai-agent-manager/agent-lint) — 
 | [Rules](rules.md) | What is checked and how to list rule IDs |
 | [CI](ci.md) | Running agent-lint in GitHub Actions and other pipelines |
 
+Worked examples (runnable mini-projects): [`examples/`](../examples/README.md).
+
 ## Quick start
 
 ```bash
